@@ -1,0 +1,56 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>Online Assessment System</title>
+		<link href="/static/css/style2.css" rel="stylesheet" type="text/css" media="screen" />
+	</head>
+	<body>
+		{% include 'header.html' %}
+		<div id="body-wrapper" class="clearfix">
+			<div class="topclear"></div>
+			<div id="left-navigation">
+				{% include 'sidebar.html' %}
+			</div>
+			<div id="content">
+				<div class="post">
+					<h1>{{cur_subj.title}}</h1>
+					<h2 class="title">Choose by Paper:</h2>
+					<div style="clear: both;">&nbsp;</div>
+					<div class="entry">
+					
+						<form name="papers" action="/question/paper/{{cur_subj.id}}/1/" method="get">
+							<div align="left">
+								<select name="list_id" style="width:88%">
+									{% for p in papers%}
+										<option value="{{p.id}}">{{p.year}} {{p.month}} Paper {{p.number}}</option>
+									{% endfor %}											
+								</select>
+								<input type="submit" class="btn" id="submit" name="submit" value="Submit"/>
+							</div>
+						</form>
+					</div>
+					<br></br>
+					<h2 class="title">Choose by Topic:</h2>					
+					<div style="clear: both;">&nbsp;</div>
+					<div class="entry">	
+					
+						<form name="papers" action="/question/topic/{{cur_subj.id}}/1/" method="get">
+							<div align="left">										
+								<select name="list_id" style="width:88%">
+									{% for t in topics %}
+										<option value="{{t.id}}">{{t.title}}</option>
+									{% endfor %}
+								</select>
+								<input type="submit" class="btn" id = "submit" name="submit" value="Submit"/>
+							</div>
+						</form>	
+					</div>
+				</div>
+				<div class="clear"></div>
+			</div>
+			{% include 'footer.html' %}
+		</div>
+	</body>
+</html>

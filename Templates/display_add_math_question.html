@@ -1,0 +1,176 @@
+{% load dajaxice_templatetags %}
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>Online Assessment System</title>
+		<script type="text/javascript" src="/static/mathjax-MathJax-f5cd294/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+			MathJax.Hub.Config({				
+				displayAlign: "left",
+				tex2jax: {inlineMath: [['$$','$$'],['\\[','\\]']], displayMath:[]} 
+			})
+		</script>
+		<!--for latex input, but still need internet connection-->
+		<script type="text/javascript" src="/static/javascript/editor.js"></script>
+		<!--<script type="text/javascript" src="http://latex.codecogs.com/editor3.js"></script>-->
+		{% dajaxice_js_import %}
+		<script type="text/javascript">	
+			//helper method to sort elements
+			function elemChk(a,b)
+			{
+				if(a.id<b.id)
+					return -1;
+				else if(a.id>b.id)
+					return 1;
+				return 0;
+			}
+			//textbox id and question id
+			function pre_ajax(form_id,q_id,part){
+				var cur_form=document.getElementById(form_id);
+				var user_ans=""
+				var tb_list=cur_form.getElementsByTagName("textarea");
+				//sort the elements, just in case
+				//tb_list=Array.prototype.slice.call(tb_list,0); //cannot be used in IE, so manual copy to array
+				temp=new Array();
+				for(var i=0;i<tb_list.length;i++){
+					temp[i]=tb_list[i];
+				}
+				tb_list=temp;
+				tb_list.sort(elemChk);
+				for(var i=0;i<tb_list.length;i++){				
+					user_ans=user_ans+tb_list[i].value+";";
+				}
+				user_ans=user_ans.substr(0,user_ans.length-1)
+				//alert(user_ans);
+				Dajaxice.ExamPapers.DBManagement.add_math_chkSol(post_ajax,{'user_input':user_ans,'question_id':q_id,'part':part});
+			}
+			function post_ajax(data){
+				alert("Result: "+data.result);
+			}
+			//1 editor to multiple textbox input
+			var textb_id='';
+			function update_tb(input_id){				
+				textb_id=input_id;				
+			}
+			function call_LatexEditor(){
+				if(textb_id==''){
+					alert("No input selected.\nClick on a textbox before selecting latex input");
+				}
+				else{
+					OpenLatexEditor(textb_id,'latex','en-us');
+				}
+			}
+		</script>
+
+		<link href="/static/css/style.css" rel="stylesheet" type="text/css" media="screen" />
+	</head>
+	<body>
+		<div id="wrapper">
+			<div id="wrapper2">
+				<div id="header" class="container">
+					<div id="logo">
+						<h1><span>Online Assessment System</span></h1>
+					</div>
+					{% include 'add_math_menubar.html' %}
+				</div>
+				<div id="banner"></div>
+				<!-- end #header -->
+
+				<div id="page">
+					<div id="content">
+						<div class="post">						
+							<div style="clear: both;">&nbsp;</div>
+							<div class="entry">
+								<a style="color:green;font-size:4;font-family:Arial;font-style:italic;font-weight:bold">Question</a>
+								{% for item in question.display %}
+									<br/>
+									{% ifequal item.type 1 %}
+										{{item.value}}
+									{% endifequal %}
+									{% ifequal item.type 2 %}
+										<img src="{{item.value}}" alt="{{item.value}}"/>
+									{% endifequal %}
+								{% endfor %}
+								
+								<br/><br/><a style="font-weight:bold">Enter your answers:</a><br/>
+								{% for ans in sol %}
+									{{ans.input}}
+									<form id='{{ans.p_name}}'>
+										{% for q in ans.type %}
+											{% ifequal q.type 'v' %}
+												<textarea id="{{ans.p_name}}_text{{q.count}}" rows="1" cols="40" style="overflow:hidden" onclick="update_tb('{{ans.p_name}}_text{{q.count}}');"></textarea>
+												{{q.unit}}												
+											{% endifequal %}
+											{% ifequal q.type 'r' %}
+												<textarea id="{{ans.p_name}}_text{{q.count}}_1" rows="1" cols="6" style="overflow:hidden" onclick="update_tb('{{ans.p_name}}_text{{q.count}}_1');"></textarea>
+												:
+												<textarea id="{{ans.p_name}}_text{{q.count}}_2" rows="1" cols="6" style="overflow:hidden" onclick="update_tb('{{ans.p_name}}_text{{q.count}}_2');"></textarea>
+											{% endifequal %}
+											{% ifequal q.type 'c' %}
+											(
+												{% for counter in q.num %}
+													<textarea id="{{ans.p_name}}_text{{q.count}}_{{counter}}" rows="1" cols="4" style="overflow:hidden" onclick="update_tb('{{ans.p_name}}_text{{q.count}}_{{counter}}');"></textarea>
+													{{q.unit}} , 													
+												{% endfor %}
+											)
+											{% endifequal %}
+											{% ifequal q.type 'm' %}
+												{% for counter in q.num %}
+													<textarea id="{{ans.p_name}}_text{{q.count}}_{{counter}}" rows="1" cols="4" style="overflow:hidden" onclick="update_tb('{{ans.p_name}}_text{{q.count}}_{{counter}}');"></textarea>
+													{% if counter|add:"+1"|divisibleby:q.col%}
+														<br/>
+													{% endif %}
+												{% endfor %}								
+											{% endifequal %}
+											{% ifequal q.type 'e' %}
+												{{q.val}} = 
+												<textarea id="{{ans.p_name}}_text{{q.count}}" rows="1" cols="30" style="overflow:hidden" onclick="update_tb('{{ans.p_name}}_text{{q.count}}');"></textarea>
+												{{q.unit}}												
+											{% endifequal %}
+											{% ifequal q.type 'n' %}
+												{{q.val}} $$\neq$$
+												<textarea id="{{ans.p_name}}_text{{q.count}}" rows="1" cols="30" style="overflow:hidden" onclick="update_tb('{{ans.p_name}}_text{{q.count}}');"></textarea>
+												{{q.unit}}												
+											{% endifequal %}
+											{% ifequal q.type 'i' %}
+												<textarea id="{{ans.p_name}}_text{{q.count}}_1" rows="1" cols="10" style="overflow:hidden" onclick="update_tb('{{ans.p_name}}_text{{q.count}}_1');"></textarea>
+												{{q.unit}}
+												{% ifequal q.lower 'l' %}&lt;{% endifequal %}												
+												{% ifequal q.lower 'e' %}&le;{% endifequal %}
+												{{q.val}}
+												{% ifequal q.upper 'l' %}&lt;{% endifequal %}												
+												{% ifequal q.upper 'e' %}&le;{% endifequal %}
+												<textarea id="{{ans.p_name}}_text{{q.count}}_2" rows="1" cols="10" style="overflow:hidden" onclick="update_tb('{{ans.p_name}}_text{{q.count}}_2');"></textarea>
+												{{q.unit}}
+												<br/>												
+											{% endifequal %}
+											<br/>
+										{% endfor %}
+										<br/>										
+										<input type='button' id = "submit" value="submit" onclick="pre_ajax('{{ans.p_name}}','{{question.id}}',{{ans.part}});"/>										
+									</form><br/>
+								{% endfor %}
+								<form action="">									
+									<input type='button' value='input' id='openEditor' onclick="call_LatexEditor();"/>
+								</form>
+																
+								<!--<a href="/add_math_solution/{{question.id}}/">Show Full Solution</a><br/>-->
+								<a href="/add_math_solution/{{question.id}}/" target='_blank'>Show Full Solution</a><br/>
+								<a href="/add_maths/{{cur_subj}}/"><span value="back to paper list">Back to Paper List</span><a>
+
+							</div>
+						</div>
+					</div><!-- end #content -->
+				</div>
+				<div id="sidebar"></div><!-- end #sidebar -->
+				<div style="clear: both;">&nbsp;</div><!-- end #page -->
+				
+				<div id="footer">			
+					<p>Copyright (c) 2011 Sitename.com. All rights reserved. Design by 
+						<a href="http://www.freecsstemplates.org/">Free CSS Templates</a>.
+					</p>
+				</div>
+			</div>
+		</div><!-- end #footer -->
+	</body>
+</html>

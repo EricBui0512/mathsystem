@@ -1,0 +1,96 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>Online Assessment System</title>
+		<link href="/static/css/style2.css" rel="stylesheet" type="text/css" media="screen" />
+		<script type="text/javascript" src="/static/mathjax-MathJax-f5cd294/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+				MathJax.Hub.Config({				
+					displayAlign: "left",
+					tex2jax: {inlineMath: [['$$','$$'],['\\[','\\]']], displayMath:[]} 
+				})
+		</script>
+	</head>
+	<body>
+		{% include 'header.html' %}
+		<div id="body-wrapper" class="clearfix">
+			<div class="topclear"></div>
+			<div id="left-navigation">
+				{% include 'sidebar.html' %}
+			</div>
+			<div id="content">
+				<div class="post">
+					<h1>Analyze by Topic</h1>
+					<p>This section analyzes the subject by topic. Choose one of the years for in-depth analysis.</p>
+					<h2>Tag Cloud</h2>
+					Choose Topic to view Tags:					
+					<div style="clear: both;">&nbsp;</div>
+					<div class="entry">	
+						<form name="papers" action="/analyzer/{{subj_id}}/topic/tag_cloud/" method="get">
+							<div align="left">
+								<table width="100%">
+									<tr>
+										<td width="15%">Topic :</td>
+										<td width="85%">
+											<select name="topic_id" style="width:100%">
+												{% for t in topics %}
+													<option value="{{t.id}}" {% if t.id == topic_id %} selected {% endif %}>{{t.title}}</option>
+												{% endfor %}
+											</select>
+										</td>
+									</tr>
+									<tr>
+										<td>Combination :</td>
+										<td>
+											<select name="combi" style="width:100%">
+												<option value="1" {% if combi == 1 %} selected {% endif %}>One</option>
+												<option value="2" {% if combi == 2 %} selected {% endif %}>Two</option>
+												<option value="3" {% if combi == 3 %} selected {% endif %}>Three</option>
+												<option value="4" {% if combi == 4 %} selected {% endif %}>Four</option>
+												<option value="5" {% if combi == 5 %} selected {% endif %}>Five</option>
+											</select>
+										</td>
+									</tr>
+									<tr>
+										<td>Tag Type :</td>
+										<td>
+											<select name="tag_type" style="width:100%">
+												<option value="All" {% if tag_type == "All" %} selected {% endif %}>All</option>
+												<option value="K" {% if tag_type == "K" %} selected {% endif %}>Keyword Only</option>
+												<option value="C" {% if tag_type == "C" %} selected {% endif %}>Concept Only</option>
+												<option value="F" {% if tag_type == "F" %} selected {% endif %}>Formula Only</option>
+											</select>
+										</td>
+									</tr>
+								</table>
+								<input type="submit" class="btn" id = "submit" name="submit" value="Submit"/>
+							</div>
+						</form>	
+					</div>
+					<br/>
+					{% if combi == 1 %}
+						<p class='tagcloud'>
+							{% for tag in onecloud %}
+								{% if tag.type == 'K' %}
+									<span style="font-size: {{tag.size}}px"><a href="/question/tag/{{subj_id}}/1/?list_id={{tag.tag|urlencode}}&topic_id={{topic_id}}" title="{{tag.count}} Entries">{{tag.tag}}({{tag.count}})</a></span>
+								{% elif tag.type == 'C' %}
+									<span style="font-size: {{tag.size}}px; color: #0fa1e0;"><a href="/question/tag/{{subj_id}}/1/?list_id={{tag.tag|urlencode}}&topic_id={{topic_id}}" title="{{tag.count}} Entries">{{tag.tag}}({{tag.count}})</a></span>
+								{% elif tag.type == 'F' %}
+									<span style="font-size: {{tag.size}}px; color: #ff0000;"><a href="/question/tag/{{subj_id}}/1/?list_id={{tag.tag|urlencode}}&topic_id={{topic_id}}" title="{{tag.count}} Entries">{{tag.tag}}({{tag.count}})</a></span>
+								{% endif %}
+								&nbsp;&nbsp;
+							{% endfor %}
+						</p>
+					{% else %}
+						{% for m in multicloud %}
+							<a href="/question/tag/{{subj_id}}/1/?list_id={{m.link}}&topic_id={{topic_id}}">{{m.tag}} ({{m.count}})</a>
+							<br/><br/>
+						{% endfor %}
+					{% endif %}
+				</div>
+				<div class="clear"></div>
+			</div>
+			{% include 'footer.html' %}
+		</div>
+	</body>
+</html>

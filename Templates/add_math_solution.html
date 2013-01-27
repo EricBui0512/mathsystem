@@ -1,0 +1,48 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>Online Assessment System</title>
+		<link href="/static/css/style2.css" rel="stylesheet" type="text/css" media="screen" />
+	</head>
+		<script type="text/javascript" src="/static/mathjax-MathJax-f5cd294/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+			MathJax.Hub.Config({				
+				displayAlign: "left",
+				tex2jax: {inlineMath: [['$$','$$'],['\\[','\\]']], displayMath:[]} 
+			})
+		</script>
+	<body>
+		{% include 'header.html' %}
+		<div id="body-wrapper" class="clearfix">
+			<div class="topclear">
+			</div>
+			<div id="left-navigation">
+				{% include 'sidebar.html' %}
+			</div>
+			<div id="content">
+				<div class="post">
+					<h1>Solution</h1>
+					<div style="clear: both;">&nbsp;</div>
+					<div class="entry">
+						{% if sol.display > 0 %}
+							{% for ans in sol.display %}
+								<br/>
+								{% ifequal ans.type 1 %}
+									{{ans.value}}
+								{% endifequal %}
+								{% ifequal ans.type 2 %}
+									<img src="{{ans.value}}" alt="{{ans.value}}"/>
+								{% endifequal %}
+							{% endfor %}
+						{% else %}
+							Answer not found
+						{% endif %}
+						<br/><br/>								
+					</div>
+				</div>
+				<div class="clear"></div>
+			</div>
+		</div>
+		{% include 'footer.html' %}
+	</body>
+</html>

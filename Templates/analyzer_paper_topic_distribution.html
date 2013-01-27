@@ -1,0 +1,46 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>Online Assessment System</title>
+		<link href="/static/css/style2.css" rel="stylesheet" type="text/css" media="screen" />
+	</head>
+	<body>
+		{% include 'header.html' %}
+		<div id="body-wrapper" class="clearfix">
+			<div class="topclear"></div>
+			<div id="left-navigation">
+				{% include 'sidebar.html' %}
+			</div>
+			<div id="content">
+				<div class="post">
+					<h1>Analyze by Paper</h1>
+					<p>This section analyzes the subject by paper. Choose one of the years for in-depth analysis.</p>
+					<h2>Topic Distribution</h2>			
+					<div style="clear: both;">&nbsp;</div>
+					<div class="entry">
+						<form name="papers" action="/analyzer/{{subj_id}}/paper/topic_distribution/" method="get">
+							<div align="left">
+								Choose Topic to view Tags:<br/>
+								<br/>
+								<select name="paperset_id" style="width:88%">
+									{% for p in papersets%}
+										<option value="{{p.id}}" {% if p.id == paperset_id %} selected {% endif %}>{{p.title}}</option>
+									{% endfor %}											
+								</select>
+								<input type="submit" class="btn" id = "submit" name="submit" value="Submit"/>
+							</div>
+						</form>	
+					</div>
+					<br>
+					{% if paperset_id > 0 %}
+						<img src="/topic_distribution/{{paperset_id}}/" />
+					{% endif %}
+				</div>
+				<div class="clear"></div>
+				
+			</div>
+			{% include 'footer.html' %}
+		</div>
+	</body>
+</html>

@@ -1,0 +1,100 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>Online Assessment System</title>
+		<link href="/static/css/style2.css" rel="stylesheet" type="text/css" media="screen" />
+		<script type="text/javascript" src="/static/mathjax-MathJax-f5cd294/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+			MathJax.Hub.Config({				
+				displayAlign: "left",
+				tex2jax: {inlineMath: [['$$','$$'],['\\[','\\]']], displayMath:[]} 
+			})
+		</script>
+	</head>	
+	<body>
+		{% include 'header.html' %}
+		<div id="body-wrapper" class="clearfix">
+			<div class="topclear">
+			</div>
+			<div id="left-navigation">
+				{% include 'sidebar.html' %}
+			</div>
+			<div id="content">
+				<div class="post">
+					<h1>{{title}}</h1>
+					<div style="clear: both;">&nbsp;</div>
+					<div class="entry">
+						<div align="left">					
+							<h2>Total Questions: {{num_q}}</h2>
+							{{tag_list}}
+							{% for q in questions %}
+								<br/><br/>
+								
+									<div class="smalltitle"><a id="{{q.id}}">Question {{q.question_no}} of {{q.paper}}:</a></div><br/>
+									Topic: {{q.topic}}&nbsp;
+									Sub-Topic: {{q.subtopic}}&nbsp;
+									Qid: {{q.id}}<!--for development-->&nbsp; <a href="/math_admin_form/{{list_type}}/{{page_no}}/{{subj_id}}/{{list_id}}/{{q.id}}/?attempt=Modify"><img src="/static/image/edit.png" width="12" title="Edit" alt="edit" /></a>
+									<hr>
+									{% for item in q.display %}
+										<br/>
+										{% ifequal item.type 1 %}
+											{{item.value}}
+										{% endifequal %}
+										{% ifequal item.type 2 %}
+											<img src="{{item.value}}" alt="{{item.value}}"/>
+										{% endifequal %}												
+									{% endfor %}<br/>
+									<br/>
+									({{q.marks}} marks)<br/>
+									<br/>
+									Tags:&nbsp;
+									{% if q.taglist != null %}
+										{% for tag in q.taglist %}
+											{% if tag != null %}
+												{% if tag.type == 'K' %}
+													<a style="color: #7c0000" href="/question/tag/{{cur_subj}}/1/?list_id={{tag.tag|urlencode}}">{{tag.tag}}</a>
+												{% elif tag.type == 'C' %}
+													<a style="color: #000000" href="/question/tag/{{cur_subj}}/1/?list_id={{tag.tag|urlencode}}">{{tag.tag}}</a>
+												{% elif tag.type == 'F' %}
+													<a style="color: #000066" href="/question/tag/{{cur_subj}}/1/?list_id={{tag.tag|urlencode}}">{{tag.tag}}</a>
+												{% endif %}
+												&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+											{% endif %}
+										{% endfor %}
+									{% endif %}
+									<br/>
+									<br/>
+									<form action="/solution/{{q.id}}/" method="get">
+										<input type="submit" id="submit" nam="solution" class="btn"  value="View Solution"/>
+									</form>
+							{% endfor %}
+							
+							<br/><br/>
+							<div class="pagination dark">
+							{% for p in page_links %}
+								{% if page_no == p %}
+									<span class="page dark active">{{p}}</span>
+								{% else %}
+									<a href='/question/{{list_type}}/{{subj_id}}/{{p}}/?list_id={{list_id}}&paperset_id={{paperset_id}}&topic_id={{topic_id}}' class='page dark gradient'>{{p}}</a>
+								{% endif %}
+							{% endfor %}
+							</div>
+							<br/><br/>
+							
+						</div>
+						<br/>
+						{% if list_type != 'tag' %}
+							<a href="/mathsection/{{cur_subj}}/">
+								<span value="back to paper list">
+									<font size="3" face="arial" color="green"><b>Back to Paper List</b></font>
+								</span>
+							</a>	
+						{% endif %}
+					</div>	
+				</div>
+				<div class="clear"></div>
+			</div>
+			{% include 'footer.html' %}
+		</div>
+	</body>
+</html>

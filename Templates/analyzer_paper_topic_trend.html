@@ -1,0 +1,145 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>Online Assessment System</title>
+		<link href="/static/css/style2.css" rel="stylesheet" type="text/css" media="screen" />
+		<script type="text/javascript">
+			function validate(form) {
+				var errorMsg = "";
+				var start_id = parseInt(form.start_paperset.value);
+				var end_id = parseInt(form.end_paperset.value);
+				var validPeriod = false;
+				var validTopic = false;
+				if (start_id != -1 && end_id != -1) {
+					if (start_id <= end_id) {
+						validPeriod = true;
+					}
+					else
+						errorMsg += "Start Period must be earlier than End Period<br/>";
+				}
+				else
+					errorMsg += "Please make sure that both droplists are selected<br/>";
+					
+				var checkboxes = document.getElementsByName("topic");
+				for (i=0; i<checkboxes.length; i++) {
+					if (checkboxes[i].checked) {
+						validTopic = true;
+						break;
+					}
+				}
+				
+				if (!validTopic)
+					errorMsg += "At least one topic must be checked<br/>";
+				
+				if (validTopic && validPeriod) {
+					document.getElementById("errorbox").innerHTML = errorMsg;
+					return true;
+				}
+				
+				document.getElementById("errorbox").innerHTML = errorMsg;
+				return false;
+			}
+			
+			function toggle(source) {
+				checkboxes = document.getElementsByName('topic');
+				for(var i in checkboxes)
+					checkboxes[i].checked = source.checked;
+			}
+			
+			function toggleAll(source) {
+				if (!source.checked)
+					document.getElementsByName('topicall')[0].checked = false;
+			}
+		</script>
+		<link rel="stylesheet" href="/static/css/jquery-ui-1.10.0.custom.css" />
+		<script src="/static/javascript/jquery-1.8.3.js"></script>
+		<script src="/static/javascript/jquery-ui.js"></script>
+		<script>
+		$(function() {
+			$( "#accordion" ).accordion();
+		});
+		</script>
+	</head>
+	<body>
+		{% include 'header.html' %}
+		<div id="body-wrapper" class="clearfix">
+			<div class="topclear"></div>
+			<div id="left-navigation">
+				{% include 'sidebar.html' %}
+			</div>
+			<div id="content">
+				<div class="post">
+					<h1>Analyze by Paper</h1>
+					<p>This section analyzes the subject by paper. Choose one of the years for in-depth analysis.</p>
+					<h2>Topic Trend Analysis</h2>			
+					<div style="clear: both;">&nbsp;</div>
+					<div class="entry">
+						<div align="left">
+							<form name="papers" action="/analyzer/{{subj_id}}/paper/topic_trend/#graph" method="get" onSubmit="javascript:return validate(this)">
+								Choose Period Range:<br/>
+								<br/>
+								<select name="start_paperset" style="width:45%">
+									<option value="-1">-- Choose Start Period --</option>
+									{% for p in papersets%}
+										<option value="{{p.id}}" {% if p.id == start_paperset_id %} selected {% endif %}>{{p.title}}</option>
+									{% endfor %}									
+								</select>
+								&nbsp;to&nbsp;
+								<select name="end_paperset" style="width:45%">
+									<option value="-1">-- Choose End Period --</option>
+									{% for p in papersets%}
+										<option value="{{p.id}}" {% if p.id == end_paperset_id %} selected {% endif %}>{{p.title}}</option>
+									{% endfor %}											
+								</select><br/>
+								<br/>
+								Select Topic(s) to analyze:<br/>
+								<br/>
+								<input type="checkbox" name="topicall" value="All" {% if topicall == 'All' %} checked {% endif %} onclick="toggle(this);">All</input><br/>
+								{% for t in topics %}
+									<input type="checkbox" name="topic" {% if t.id in sel_topics or topicall == 'All' %} checked {% endif %} onclick="toggleAll(this);" value="{{t.id}}">{{t.title}}</input><br/>
+								{% endfor %}
+								<br/>
+								Type:
+								<input type="radio" id="bypercent" name="type" value="percent" {% if type == "percent" or type == "" %} checked {% endif %}>Percentage</input>
+								<input type="radio" id="byquestions" name="type" value="count" {% if type == "count" %} checked {% endif %}>Question Count</input><br/>
+								<br/>
+								<input type="submit" class="btn" id = "submit" name="submit" value="Generate"/>
+							</form>
+						</div>
+					</div>
+					<br/>
+					<a id="graph" />
+					<div id="errorbox" class="ErrorMsg"></div>
+					{% if start_paperset_id <= end_paperset_id and start_paperset_id > 0 and end_paperset_id > 0 %}
+					<table>
+						<tr>
+							<td width="80%">
+									<img src="/topic_trend/?start_id={{start_paperset_id}}&end_id={{end_paperset_id}}&topic={{topicstring}}&type={{type}}" />
+							</td>
+							<td width="20%" valign="top">
+								<div class="smalltitle">Related Papers:</div>
+								<br/>
+								<div id="accordion">
+								{% for data in sidebarData %}
+									<h3>{{data.paperset}}</h3>
+									<div>
+										<p>
+											{% for tp in data.topicdata %}
+												<a href="/question/topic/{{subj_id}}/1/?list_id={{tp.topic_id}}&paperset_id={{data.paperset_id}}">{{tp.topic_name}} ({{tp.count}})</a><br/>	
+											{% endfor %}
+										</p>
+									</div>
+								{% endfor %}
+								</div>
+							</td>
+						</tr>
+					</table>
+					{% endif %}
+				</div>
+				<div class="clear"></div>
+			</div>
+		</div>
+		{% include 'footer.html' %}
+	</body>
+</html>

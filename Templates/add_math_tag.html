@@ -1,0 +1,72 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>Online Assessment System</title>
+		<link href="/static/css/style2.css" rel="stylesheet" type="text/css" media="screen" />
+	</head>
+		<script type="text/javascript" src="/static/mathjax-MathJax-f5cd294/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+			MathJax.Hub.Config({				
+				displayAlign: "left",
+				tex2jax: {inlineMath: [['$$','$$'],['\\[','\\]']], displayMath:[]} 
+			})
+		</script>
+	<body>
+		{% include 'header.html' %}
+		<div class="topclear">
+		</div>
+		<div id="body-wrapper" class="clearfix">
+			<div class="post">
+				<h1>{{title}}</h1>							
+				<div style="clear: both;">&nbsp;</div>
+				<div class="entry">
+					<div align="left">					
+						<h2>Total Questions: {{num_q}}</h2>
+						{% for q in questions %}
+							<br/><br/>
+								{% for pp in papers %}
+									{{pp.id}}
+								{% endfor %}
+								<div class="smalltitle">Question {{q.question_no}}:</div>
+								<br/>Qid: {{q.id}}<!--for development-->											
+								{% for item in q.display %}
+									<br/>
+									{% ifequal item.type 1 %}
+										{{item.value}}
+									{% endifequal %}
+									{% ifequal item.type 2 %}
+										<img src="{{item.value}}" alt="{{item.value}}"/>
+									{% endifequal %}												
+								{% endfor %}
+								<br/><br/>
+								<form action="/tag/{{cur_subj}}/0/" method="get">
+								Tags:&nbsp;
+								{% if q.taglist != null %}
+									{% for tag in q.taglist %}
+										{% if tag != null %}
+											<input type='submit' id='tagsubmit' name='tag' class='tagbtn' value={{tag}} /> &nbsp;
+										{% endif %}
+									{% endfor %}
+								{% endif %}
+								</form>
+								<br/><br/>
+								<form action="/solution/{{q.id}}/" method="get">
+									<input type="submit" id="submit" nam="solution" class="btn"  value="View Solution"/>
+								</form>
+						{% endfor %}
+						
+						<br/><br/>
+						Page: |
+						{% for p in page_links %}
+							<a href='/question/{{list_type}}/{{p}}/?list_id={{list_id}}'>{{p}}</a> |
+						{% endfor %}
+						<br/><br/>
+					</div>
+					<br/>
+				</div>	
+			</div>
+			<div class="clear"></div>
+			{% include 'footer.html' %}
+		</div>
+	</body>
+</html>
