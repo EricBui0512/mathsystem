@@ -40,18 +40,31 @@ urlpatterns = patterns('',
 	(r'^menu/$',direct_to_template,{'template':'menu.html'}),	
 	(r'^mathsection/(?P<subj_id>\d*)/$',views.AMaths_Menu),
 	(r'^question/(?P<list_type>.*)/(?P<subj_id>\d*)/(?P<page_no>\d*)/$',views.add_math_question),
+	(r'^concept/(?P<subj_id>\d*)/$',views.add_math_concept),
 	#(r'^display_addmath_question/(?P<question_id>\d*)/$',views.display_add_math_question),
-	(r'^solution/(?P<q_id>\d*)/$',views.add_math_solution),
 	
 	#Analyzer section
 	(r'^analyzer/(?P<subj_id>\d*)/$',views.analyzer_main),
-	url(r'^topic_distribution/(?P<paperset_id>\d*)/$', views.topic_distribution_chart),
-	url(r'^topic_trend/$', views.topic_trend_chart),
-	(r'^analyzer/(?P<subj_id>\d*)/paper/tag_cloud/$',views.analyzer_paper_tag),
+	#url(r'^topic_distribution/(?P<paperset_id>\d*)/$', views.topic_distribution_chart),
+	#url(r'^topic_trend/$', views.topic_trend_chart),
+	
+	(r'^analyzer/(?P<subj_id>\d*)/paper/concept_distribution/$',views.analyzer_paper_concept_distribution),
+	(r'^analyzer/(?P<subj_id>\d*)/paper/concept_trend/$',views.analyzer_paper_concept_trend),
+	
+	
+	(r'^analyzer/(?P<subj_id>\d*)/paper/formula_distribution/$',views.analyzer_paper_formula_distribution),
+	(r'^analyzer/(?P<subj_id>\d*)/paper/formula_trend/$',views.analyzer_paper_formula_trend),
+	
 	(r'^analyzer/(?P<subj_id>\d*)/paper/topic_distribution/$',views.analyzer_paper_topic_distribution),
 	(r'^analyzer/(?P<subj_id>\d*)/paper/topic_trend/$',views.analyzer_paper_topic_trend),
+	
+	(r'^analyzer/(?P<subj_id>\d*)/paper/tag_cloud/$',views.analyzer_paper_tag),
 	(r'^analyzer/(?P<subj_id>\d*)/topic/tag_cloud/$',views.analyzer_topic_tag),
+	
+	
+	
 	(r'^analyzer_cluster/(?P<subj_id>\d*)/$',views.analyzer_topic_cluster),
+	(r'^result/(?P<page_no>\d*)/$',views.result),
 	
 	#Admin for Add maths
 	(r'^math_admin/(?P<subj_id>\d*)/$',views.AddMaths_Admin),
@@ -60,6 +73,11 @@ urlpatterns = patterns('',
 	(r'^math_admin_preview/$',views.AddMaths_qPreview),
 	(r'^math_admin_modify/(?P<list_type>.*)/(?P<page_no>\d*)/(?P<subj_id>\d*)/$',views.AddMaths_qChange),
 	(r'^math_admin_delete/(?P<list_type>.*)/(?P<page_no>\d*)/(?P<subj_id>\d*)/$',views.AddMaths_qDelete),
+	(r'^math_admin_taglist/$',views.AddMaths_Admin_TagList),
+	(r'^math_admin_regenkeyword/$',views.AddMaths_Admin_RegenKeyword),
+	(r'^math_admin_tag_delete/$',views.AddMaths_Admin_DeleteTag),
+	(r'^math_admin_tag_form/$',views.AddMaths_Admin_TagForm),
+	(r'^math_admin_tag_save/$',views.AddMaths_Admin_SaveTag),
 	#helper for developers
 	(r'^math_admin_missing_sol/$',views.find_missing_sol),
 	

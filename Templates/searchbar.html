@@ -1,0 +1,35 @@
+{% load search %}
+{% show_keywords as keywords %}
+<head>
+	<!--link href="/static/css/style2.css" rel="stylesheet" type="text/css" media="screen" /-->
+	<script src="/static/javascript/jquery-ui.js"></script>
+	<script src="/static/javascript/tagit.js"></script>
+	<link rel="stylesheet" type="text/css" href="/static/css/jquery-ui-1.10.0.custom.css">
+	<link rel="stylesheet" type="text/css" href="/static/css/tagit-dark-grey.css">
+	<script type="text/javascript" src="/static/mathjax-MathJax-f5cd294/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+			MathJax.Hub.Config({				
+				displayAlign: "left",
+				tex2jax: {inlineMath: [['$$','$$'],['\\[','\\]']], displayMath:[]} 
+			})
+	</script>
+	<script>
+		$(function () {
+		  $('#search_field').tagit({tagSource:{{keywords.show_keywords|safe}}, select:true, sortable:true});
+		});
+	  </script>
+</head>
+<div class="row-fluid" style="background:#CCCCCC; padding-top:20px; padding-bottom:20px; valign:center;">
+	<form action="/result/1/" method="get">
+		<div class="span2" style="padding-left:10px;"><h4>Tag Search:</h4></div>
+		<div class="span9" style="margin-left:0px;">
+			<ul id="search_field" data-name="tag">
+			{% if tags|length > 0 %}
+				{% for t in tags %}
+					<li data-value="{{t}}">{{t}}</li>
+				{% endfor %}
+			{% endif %}
+			</ul>
+		</div>
+		<div class="span1"><input type="submit" id="search" class="btn btn-inverse" style="height:34px;" value="Search" /></div>
+	</form>
+</div>

@@ -13,28 +13,33 @@ MANAGERS = ADMINS
 DAJAXICE_MEDIA_PREFIX="dajaxice"
 
 #online database
-#DATABASES = {
-#    'default': {
-#        'ENGINE': 'django.db.backends.mysql', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
-#        'NAME': 'examquestions',                      # Or path to database file if using sqlite3.
-#        'USER': 'admin',                      # Not used with sqlite3.
-#        'PASSWORD': 'password',                  # Not used with sqlite3.
-#        'HOST': 'instance28075.db.xeround.com',                      # Set to empty string for localhost. Not used with sqlite3.
-#        'PORT': '18366',                      # Set to empty string for default. Not used with sqlite3.
-#    }
-#}
-
-#local
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
-        'NAME': 'examquestions',                      # Or path to database file if using sqlite3.
-        'USER': 'root',                      # Not used with sqlite3.
-        'PASSWORD': 'admin',                  # Not used with sqlite3.
-        'HOST': '',                      # Set to empty string for localhost. Not used with sqlite3.
-        'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
-    }
-}
+if 'VCAP_SERVICES' in os.environ:
+	import json
+	vcap_services = json.loads(os.environ['VCAP_SERVICES'])
+	mysql_srv = vcap_services['mysql-5.1'][0]
+	cred = mysql_srv['credentials']
+	
+	DATABASES = {
+		'default': {
+			'ENGINE': 'django.db.backends.mysql', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
+			'NAME': cred['name'],                      # Or path to database file if using sqlite3.
+			'USER': cred['user'],                      # Not used with sqlite3.
+			'PASSWORD': cred['password'],                  # Not used with sqlite3.
+			'HOST': cred['hostname'],                      # Set to empty string for localhost. Not used with sqlite3.
+			'PORT': cred['port'],                      # Set to empty string for default. Not used with sqlite3.
+		}
+	}
+else:
+	DATABASES = {
+		'default': {
+			'ENGINE': 'django.db.backends.mysql', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
+			'NAME': 'd861e3396e6874a4dbc7bbe62fc81d6ec',                      # Or path to database file if using sqlite3.
+			'USER': 'eldricbui.ntu@gmail.com',                      # Not used with sqlite3.
+			'PASSWORD': 'buivantuong',                  # Not used with sqlite3.
+			'HOST': '10.0.7.119',                      # Set to empty string for localhost. Not used with sqlite3.
+			'PORT': '', 
+		}
+	}
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
@@ -58,6 +63,9 @@ USE_I18N = True
 # If you set this to False, Django will not format dates, numbers and
 # calendars according to the current locale
 USE_L10N = True
+
+# If you set this to False, Django will not use timezone-aware datetimes.
+USE_TZ = True
 
 # Absolute filesystem path to the directory that will hold user-uploaded files.
 # Example: "/home/media/media.lawrence.com/media/"
@@ -124,6 +132,10 @@ TEMPLATE_CONTEXT_PROCESSORS = (
 
 ROOT_URLCONF = 'ExamPapers.urls'
 
+# Python dotted path to the WSGI application used by Django's runserver.
+WSGI_APPLICATION = 'wsgi.application'
+
+PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
 TEMPLATE_DIRS = (
     # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
     # Always use forward slashes, even on Windows.
@@ -144,7 +156,7 @@ INSTALLED_APPS = (
     # 'django.contrib.admindocs',
 	'ExamPapers.DBManagement',
 	'ExamPapers.resource',
-	'dajaxice',
+	'ExamPapers.dajaxice',
 )
 
 

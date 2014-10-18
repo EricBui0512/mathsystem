@@ -3,98 +3,140 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 	<head>
 		<title>Online Assessment System</title>
-		<link href="/static/css/style2.css" rel="stylesheet" type="text/css" media="screen" />
+		<link href="/static/css/bootstrap.css" rel="stylesheet" type="text/css" media="screen" />
+		<link href="/static/css/bootstrap.min.css" rel="stylesheet" type="text/css" media="screen" />
+		<link href="/static/css/bootstrap-responsive.css" rel="stylesheet" type="text/css" media="screen" />
+		<link href="/static/css/bootstrap-responsive.min.css" rel="stylesheet" type="text/css" media="screen" />
 		<script type="text/javascript" src="/static/mathjax-MathJax-f5cd294/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
 			MathJax.Hub.Config({				
 				displayAlign: "left",
 				tex2jax: {inlineMath: [['$$','$$'],['\\[','\\]']], displayMath:[]} 
 			})
 		</script>
+		<script type="text/javascript">
+			function toggle(qid, button_id) {
+				var ele_name = "sol_" + qid;
+				var ele = document.getElementById(ele_name);
+				var text = document.getElementById(button_id);
+				if(ele.style.display == "block") {
+						ele.style.display = "none";
+					text.value = "View Solution";
+				}
+				else {
+					ele.style.display = "block";
+					text.value = "Hide Solution";
+				}
+			} 
+		</script>
 	</head>	
 	<body>
 		{% include 'header.html' %}
-		<div id="body-wrapper" class="clearfix">
-			<div class="topclear">
-			</div>
-			<div id="left-navigation">
-				{% include 'sidebar.html' %}
-			</div>
-			<div id="content">
-				<div class="post">
-					<h1>{{title}}</h1>
-					<div style="clear: both;">&nbsp;</div>
-					<div class="entry">
-						<div align="left">					
-							<h2>Total Questions: {{num_q}}</h2>
-							{{tag_list}}
-							{% for q in questions %}
-								<br/><br/>
-								
-									<div class="smalltitle"><a id="{{q.id}}">Question {{q.question_no}} of {{q.paper}}:</a></div><br/>
-									Topic: {{q.topic}}&nbsp;
-									Sub-Topic: {{q.subtopic}}&nbsp;
-									Qid: {{q.id}}<!--for development-->&nbsp; <a href="/math_admin_form/{{list_type}}/{{page_no}}/{{subj_id}}/{{list_id}}/{{q.id}}/?attempt=Modify"><img src="/static/image/edit.png" width="12" title="Edit" alt="edit" /></a>
-									<hr>
-									{% for item in q.display %}
-										<br/>
-										{% ifequal item.type 1 %}
-											{{item.value}}
-										{% endifequal %}
-										{% ifequal item.type 2 %}
-											<img src="{{item.value}}" alt="{{item.value}}"/>
-										{% endifequal %}												
-									{% endfor %}<br/>
-									<br/>
-									({{q.marks}} marks)<br/>
-									<br/>
-									Tags:&nbsp;
-									{% if q.taglist != null %}
-										{% for tag in q.taglist %}
-											{% if tag != null %}
-												{% if tag.type == 'K' %}
-													<a style="color: #7c0000" href="/question/tag/{{cur_subj}}/1/?list_id={{tag.tag|urlencode}}">{{tag.tag}}</a>
-												{% elif tag.type == 'C' %}
-													<a style="color: #000000" href="/question/tag/{{cur_subj}}/1/?list_id={{tag.tag|urlencode}}">{{tag.tag}}</a>
-												{% elif tag.type == 'F' %}
-													<a style="color: #000066" href="/question/tag/{{cur_subj}}/1/?list_id={{tag.tag|urlencode}}">{{tag.tag}}</a>
-												{% endif %}
-												&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-											{% endif %}
-										{% endfor %}
-									{% endif %}
-									<br/>
-									<br/>
-									<form action="/solution/{{q.id}}/" method="get">
-										<input type="submit" id="submit" nam="solution" class="btn"  value="View Solution"/>
-									</form>
+		<div class="row-fluid" style="margin-top:40px;">
+	
+		</div>
+		<div class="container-fluid">
+			<div class="row-fluid">
+				<h1>{{title}}</h1>
+				<hr>
+				<div class="alert alert-block alert-info">
+				<h3>Total Questions: {{num_q}}</h3>
+				{% if list_type == "tag" %}
+					<hr>
+					<h4>Formula(s) used:</h4>
+					{% if formula|length > 0 %}
+						<ul>
+							{% for f in formula %}
+							<li>{{f}}</li>
 							{% endfor %}
-							
-							<br/><br/>
-							<div class="pagination dark">
-							{% for p in page_links %}
-								{% if page_no == p %}
-									<span class="page dark active">{{p}}</span>
-								{% else %}
-									<a href='/question/{{list_type}}/{{subj_id}}/{{p}}/?list_id={{list_id}}&paperset_id={{paperset_id}}&topic_id={{topic_id}}' class='page dark gradient'>{{p}}</a>
-								{% endif %}
+						</ul>
+					{% else %}
+						-
+					{% endif %}
+					<h4>Concept(s) used:</h4>
+					{% if concept|length > 0 %}
+						<ul>
+							{% for c in concept %}
+							<li>{{c}}</li>
 							{% endfor %}
-							</div>
-							<br/><br/>
-							
-						</div>
-						<br/>
-						{% if list_type != 'tag' %}
-							<a href="/mathsection/{{cur_subj}}/">
-								<span value="back to paper list">
-									<font size="3" face="arial" color="green"><b>Back to Paper List</b></font>
-								</span>
-							</a>	
-						{% endif %}
-					</div>	
+						</ul>
+					{% else %}
+						-
+					{% endif %}
+				{% endif %}
 				</div>
-				<div class="clear"></div>
+				{% for q in questions %}
+					<div class="well well-large">
+						<h3><a id="{{q.id}}">Question {{q.question_no}} of {{q.paper}}:</a></h3>
+						<div class="row-fluid">
+						<div class="span2">Qid: {{q.id}}</div>
+						<div class="span2">Topic: {{q.topic}}</div>
+						<div class="span7">Sub-Topic: {{q.subtopic}}</div>
+						<div class="span1"><a href="/math_admin_form/{{list_type}}/{{page_no}}/{{subj_id}}/{{list_id}}/{{q.id}}/?attempt=Modify" class="btn-small btn-primary">Edit</a></div>
+						</div>
+						<hr>
+						{% for item in q.display %}
+							{% ifequal item.type 1 %}
+								{{item.value|safe}}
+							{% endifequal %}
+							{% ifequal item.type 2 %}
+								<img src="{{item.value}}" alt="{{item.value}}"/>
+							{% endifequal %}		
+							<br/>
+						{% endfor %}
+						<br/>
+						({{q.marks}} marks)<br/>
+						<br/>
+						<input type="button" id="toggleans" name="toggleans" class="btn btn-inverse" onclick="toggle({{q.id}}, this.id);"  value="View Solution"/>
+						<br/>
+						<div class="row-fluid" id="sol_{{q.id}}" style="display:none;">
+							{% if q.displayans > 0 %}
+								{% for ans in q.displayans %}
+									<br/>
+									{% ifequal ans.type 1 %}
+										{{ans.value|safe}}
+									{% endifequal %}
+									{% ifequal ans.type 2 %}
+										<img src="{{ans.value}}" alt="{{ans.value}}"/>
+									{% endifequal %}
+								{% endfor %}
+							{% else %}
+								Answer not found
+							{% endif %}
+						</div>
+						<br>
+						<div class="row-fluid">
+							<div class="span1"><h5>Tags:</h5></div>
+							<div class="span11">
+							{% if q.taglist != null %}
+								{% for tag in q.taglist %}
+									{% if tag != null %}
+										{% if tag.tag.type == 'K' %}
+											<a class="btn btn-success" style="margin-bottom:5px;" href="/question/tag/{{cur_subj}}/1/?list_id={{tag.tag.id}}">{{tag.tag.title}}</a>
+										{% elif tag.tag.type == 'C' %}
+											<a class="btn btn-danger" style="margin-bottom:5px;" href="/question/tag/{{cur_subj}}/1/?list_id={{tag.tag.id}}">{{tag.tag.title}}</a>
+										{% elif tag.tag.type == 'F' %}
+											<a class="btn btn-info" style="margin-bottom:5px;" href="/question/tag/{{cur_subj}}/1/?list_id={{tag.tag.id}}">{{tag.tag.title}}</a>
+										{% endif %}
+									{% endif %}
+								{% endfor %}
+							{% endif %}
+							</div>
+						</div>
+					</div>
+				{% endfor %}
+				<div class="pagination">
+					<ul>
+						{% for p in page_links %}
+							{% if page_no == p %}
+								<li class="disabled"><a href="#">{{p}}</a></li>
+							{% else %}
+								<li class="active"><a href='/question/{{list_type}}/{{subj_id}}/{{p}}/?list_id={{list_id}}&paperset_id={{paperset_id}}&topic_id={{topic_id}}'>{{p}}</a></li>
+							{% endif %}
+						{% endfor %}
+					</ul>
+				</div>
 			</div>
-			{% include 'footer.html' %}
 		</div>
 	</body>
+	{% include 'footer.html' %}
 </html>

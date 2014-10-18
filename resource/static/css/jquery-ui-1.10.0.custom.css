@@ -524,49 +524,34 @@ button.ui-button::-moz-focus-inner {
 	cursor: move;
 }
 .ui-menu {
-	list-style: none;
+	list-style:none;
 	padding: 2px;
 	margin: 0;
-	display: block;
-	outline: none;
+	display:block;
+	float: left;
 }
 .ui-menu .ui-menu {
 	margin-top: -3px;
-	position: absolute;
 }
 .ui-menu .ui-menu-item {
-	margin: 0;
+	margin:0;
 	padding: 0;
+	zoom: 1;
+	float: left;
+	clear: left;
 	width: 100%;
 }
-.ui-menu .ui-menu-divider {
-	margin: 5px -2px 5px -2px;
-	height: 0;
-	font-size: 0;
-	line-height: 0;
-	border-width: 1px 0 0 0;
-}
 .ui-menu .ui-menu-item a {
-	text-decoration: none;
-	display: block;
-	padding: 2px .4em;
-	line-height: 1.5;
-	min-height: 0; /* support: IE7 */
-	font-weight: normal;
+	text-decoration:none;
+	display:block;
+	padding:.2em .4em;
+	line-height:1.5;
+	zoom:1;
 }
-.ui-menu .ui-menu-item a.ui-state-focus,
+.ui-menu .ui-menu-item a.ui-state-hover,
 .ui-menu .ui-menu-item a.ui-state-active {
 	font-weight: normal;
 	margin: -1px;
-}
-
-.ui-menu .ui-state-disabled {
-	font-weight: normal;
-	margin: .4em 0 .2em;
-	line-height: 1.5;
-}
-.ui-menu .ui-state-disabled a {
-	cursor: default;
 }
 
 /* icon support */
@@ -802,7 +787,7 @@ body .ui-tooltip {
 	color: #000000;
 }
 .ui-widget-content a {
-	color: #ffffff;
+	color: #000000;
 }
 .ui-widget-header {
 	border: 1px solid #333333;
@@ -820,7 +805,7 @@ body .ui-tooltip {
 .ui-widget-content .ui-state-default,
 .ui-widget-header .ui-state-default {
 	border: 1px solid #444444;
-	background: #070707 url(images/ui-bg_highlight-soft_35_222222_1x100.png) 50% 50% repeat-x;
+	background: #545354;
 	font-weight: normal;
 	color: #eeeeee;
 }
@@ -837,7 +822,7 @@ body .ui-tooltip {
 .ui-widget-content .ui-state-focus,
 .ui-widget-header .ui-state-focus {
 	border: 1px solid #0b93d5;
-	background: #003147 url(images/ui-bg_highlight-soft_33_003147_1x100.png) 50% 50% repeat-x;
+	background: #000000;
 	font-weight: normal;
 	color: #ffffff;
 }
@@ -852,7 +837,7 @@ body .ui-tooltip {
 .ui-widget-content .ui-state-active,
 .ui-widget-header .ui-state-active {
 	border: 1px solid #26b3f7;
-	background: #0972a5 url(images/ui-bg_highlight-hard_20_0972a5_1x100.png) 50% 50% repeat-x;
+	background: #0972a5;
 	font-weight: normal;
 	color: #ffffff;
 }

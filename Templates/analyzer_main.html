@@ -4,26 +4,81 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 	<head>
 		<title>Online Assessment System</title>
-		<link href="/static/css/style2.css" rel="stylesheet" type="text/css" media="screen" />
+		<link href="/static/css/bootstrap.css" rel="stylesheet" type="text/css" media="screen" />
+		<link href="/static/css/bootstrap.min.css" rel="stylesheet" type="text/css" media="screen" />
+		<link href="/static/css/bootstrap-responsive.css" rel="stylesheet" type="text/css" media="screen" />
+		<link href="/static/css/bootstrap-responsive.min.css" rel="stylesheet" type="text/css" media="screen" />
 	</head>
 	<body>
 		{% include 'header.html' %}
-		<div id="body-wrapper" class="clear-fix">
-			<div class="topclear"></div>
-			<div id="left-navigation">
-				{% include 'sidebar.html' %}
+		<div class="row-fluid" style="margin-top:40px;">
+		</div>
+		<div class="container-fluid">
+			<div class="row-fluid" style="margin-top:40px;" align = "center">
+			<h1>Introducing Analyzer</h1>
+			<hr>
+			<h3>Welcome to the Analyzer - Section {{subj_id.title}}</h3>
+					
 			</div>
-			<div id="content">
-				<div class="post">
-					<h1>Analyzer Main</h1>
-					<p>Welcome to the Analyzer section. Below are the choice of analysis.</p>
-					<br/>
-					<br/>
-					<br/>
+			<div class="span7">
+				<div class="row-fluid">
+
+					<div class="well">
+						<h5>Concept Analyzer</h5>
+						<p>Analyzing Concepts of Questions based on Topics</p>
+						<h6><a href="/analyzer/{{subj_id.id}}/paper/concept_distribution/">1. Concept Distribution</a></h6>
+						<h6><a href="/analyzer/{{subj_id.id}}/paper/concept_trend/">2. Concept Trend</a></h6>
+						
+						<h5>Formula Analyzer</h5>
+						<p>Analyzing Formulas used in Questions based on Topics</p>
+						<h6><a href="/analyzer/{{subj_id.id}}/paper/formula_distribution/">1. Formula Distribution</a></h6>
+						<h6><a href="/analyzer/{{subj_id.id}}/paper/formula_trend/">2. Formula Trend</a></h6>
+						
+						<h5>Topic Analyzer</h5>
+						<p>Analyzing Topics of Questions based on Papers</p>
+						<h6><a href="/analyzer/{{subj_id.id}}/paper/topic_distribution/">1. Topic Distribution</a></h6>
+						<h6><a href="/analyzer/{{subj_id.id}}/paper/topic_trend/">2. Topic Trend</a></h6>
+						
+						<h5>Tag Cloud Analyzer</h5>
+						<p>Analyzing Concepts, Formulas and Keywords used in Questions</p>
+						<h6><a href="/analyzer/{{subj_id.id}}/paper/tag_cloud/">1. Base on paper</a></h6>
+						<h6><a href="/analyzer/{{subj_id.id}}/topic/tag_cloud/">2. Base on topic</a></h6>
+		
+		
+						<h5>Conceptual Clusters</h5>
+						<p>Analyzing Question Clusters Generated based on analyzing Concepts, Formulas and Keywords used in Questions</p>
+						<h6><a href="/analyzer_cluster/{{subj_id.id}}/">1. Question Clusters</a></h6>
+	
+						
+					</div>
 				</div>
-				<div class="clear"></div>
 			</div>
-			{% include 'footer.html' %}
+			<li class="span5">
+					<div class="thumbnail" style="border:0px;border-radius:0px;box-shadow:none;">
+						<img src="/static/image/distribution.png" width="250" height = "100" alt="Distribution" />
+						<h4>Distribution Chart</h4>
+						<p>A visualization of the percentage of components, represented on a pie chart</p>
+						
+						<a class="btn btn-info" href="/analyzer/{{subj_id.id}}/paper/concept_distribution/">View Now >></a>
+					</div>
+					<div class="thumbnail" style="border:0px;border-radius:0px;box-shadow:none;">
+						<img src="/static/image/trend.png" width="250" height = "100" alt="Trend" />
+						<h4>Trend </h4>
+						<p>A visualization of a general direction in which a situation is changing or developing, represented on a graph by a line </p>
+						
+						<a class="btn btn-info" href="/analyzer/{{subj_id.id}}/paper/concept_trend/">View Now >></a>
+					</div>
+					<div class="thumbnail" style="border:0px;border-radius:0px;box-shadow:none;">
+						<img src="/static/image/cluster.png" width="250" height = "100" alt="Cluster" />
+						<h4>Cluster</h4>
+						<p>View a group of things of the same type that grow or appear close together</p>
+			
+						<a class="btn btn-info" href="/analyzer_cluster/{{subj_id.id}}/">View Now >></a>
+					</div>
+			</li>
+			
+			
 		</div>
 	</body>
+	{% include 'footer.html' %}
 </html>

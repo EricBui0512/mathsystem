@@ -9,7 +9,8 @@ admin.site.register(models.subject, DefaultAdmin)
 admin.site.register(models.topic, DefaultAdmin)
 admin.site.register(models.subtopic, DefaultAdmin)
 admin.site.register(models.tag, DefaultAdmin)
-admin.site.register(models.keyword, DefaultAdmin)
+admin.site.register(models.tag_definitions, DefaultAdmin)
+#admin.site.register(models.keyword, DefaultAdmin)
 
 """ this section is not needed
 admin.site.register(models.subquestion, DefaultAdmin)

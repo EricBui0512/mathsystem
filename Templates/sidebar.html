@@ -1,21 +1,29 @@
-<div id='cssvmenu'>
-	<ul>
-		<li><a href="/analyzer/1/">Home</a></li>
-		<li><a href="/mathsection/1/">View Paper</a></li>
-		<li class="has-sub ">
-			<a href="#">Paper-Based Analysis</a>
-			<ul>
-				<li><a href="/analyzer/1/paper/tag_cloud/">Tag Cloud</a></li>
-				<li><a href="/analyzer/1/paper/topic_distribution/">Topic Distribution</a></li>
-				<li><a href="/analyzer/1/paper/topic_trend/">Topic Trend Analysis</a></li>
-			</ul>
-		</li>
-		<li class="has-sub ">
-			<a href="#">Topic-Based Analysis</a>
-			<ul>
-				<li><a href="/analyzer/1/topic/tag_cloud/">Tag Cloud</a></li>
-				<li><a href="/analyzer_cluster/1/">Question Clusters</a></li>
-			</ul>
-		</li>
+
+
+<div class="well sidebar-nav">
+	<ul class="nav nav-list">
+	
+		<li class="nav-header">Concept Analyzer</li>
+		<li><a href="/analyzer/{{subj_id_id.id}}/paper/concept_distribution/">Concept Distribution</a></li>
+		<li><a href="/analyzer/{{subj_id.id}}/paper/concept_trend/">Concept Trend</a></li>
+		
+		<li class="nav-header">Formula Analyzer</li>
+		<li><a href="/analyzer/{{subj_id_id.id}}/paper/formula_distribution/">Formula Distribution</a></li>
+		<li><a href="/analyzer/{{subj_id_id.id}}/paper/formula_trend/">Formula Trend</a></li>
+		
+		<li class="nav-header">Topic Analyzer</li>
+		<li><a href="/analyzer/{{subj_id_id.id}}/paper/topic_distribution/">Topic Distribution</a></li>
+		<li><a href="/analyzer/{{subj_id_id.id}}/paper/topic_trend/">Topic Trend</a></li>
+		
+		
+		<li class="nav-header">Tag Cloud Analyzer</li>
+		<li><a href="/analyzer/{{subj_id_id.id}}/paper/tag_cloud/">Base on paper</a></li>
+		<li><a href="/analyzer/{{subj_id_id.id}}/topic/tag_cloud/">Base on topic</a></li>
+		
+		
+		<li class="nav-header">Conceptual Clusters</li>
+		<li><a href="/analyzer_cluster/{{subj_id_id.id}}/">Question Clusters</a></li>
+		
 	</ul>
+	
 </div>

@@ -15,25 +15,15 @@ from django.contrib.auth.decorators import login_required
 
 import urllib2
 import urllib
+import json
+import re
 
 #for clustering
 import math
 import random
 
-#for topic distribution
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib as mpl
-from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-from matplotlib.figure import Figure
-from matplotlib.font_manager import FontProperties
-
 #for paper details
 import datetime
-
-#set java server Java Server
-#java_server='http://live.2.dev2012oexpp.appspot.com'
-#java_server='http://127.0.0.1:8888'
 
 #set Additional Maths folder
 add_math_img='/static/image/'
@@ -263,9 +253,9 @@ def test_solution_checker(request):
 		return render_to_response('sol_check_test.html',{},RequestContext(request))
 """	
 
-#Import from Ingrid's Code
+#Skeletal Modules
 
-#a menu page to select a paper or topic
+#menu page to select topic or paper
 def AMaths_Menu(request,subj_id):
 	param={}
 	
@@ -281,7 +271,7 @@ def AMaths_Menu(request,subj_id):
 	
 	return render_to_response('add_math.html',param)
 
-#helper method to process content of question
+#method to process question into display format
 def process_question(q):
 	#query for all images for this question
 	img_sel=list(image.objects.filter(qa_id=q['id'],qa='Question').only('id','imagepath').order_by('id').values())
@@ -321,40 +311,42 @@ def add_math_question(request,list_type,subj_id,page_no):
 	
 	#get id of paper or topic
 	list_id = request.GET.get("list_id")
-	topic_id = 0
-	paperset_id = 0
+	topic_id = 0 #default
+	paperset_id = 0 #default
 	if (request.GET.get("topic_id") != None):
 		topic_id = int(request.GET.get("topic_id"))
 	if (request.GET.get("paperset_id") != None):
 		paperset_id = int(request.GET.get("paperset_id"))
+	
 	#from the type (paper or topic) passed, query for questions
 	sel=[]
 	page_title=[] #for storing paper title / topic title
-	if list_type=='paper':		
+	
+	if list_type=='paper': #view by paper	
 		sel=list(question.objects.select_related().filter(paper_id=list_id).only('id','content','question_no','marks').order_by('id').values())
 		param['cur_subj']=paper.objects.get(id=list_id).subject_id_id
 		page_title=subject.objects.get(id=subj_id).title + ' ' + paper.objects.get(id=list_id).year + ' ' +  paper.objects.get(id=list_id).month + ' Paper ' + str(paper.objects.get(id=list_id).number)
-	elif list_type=='topic':
-		if (paperset_id > 0):
+	elif list_type=='topic': #view by topic
+		if (paperset_id > 0): #optional of having paperset filtered
 			paper_ids = paper.objects.filter(paperset_id=paperset_id)
 			sel = list(question.objects.filter(paper_id__in=paper_ids, topic_id=list_id).only('id','content','question_no','marks').order_by('id').values())
-		else:
+		else: #no paperset by default
 			sel = list(question.objects.filter(topic_id=list_id).only('id','content','question_no','marks').order_by('id').values())
 		param['cur_subj']=topic.objects.get(id=list_id).subject_id.id
 		page_title=subject.objects.get(id=subj_id).title + ' - ' + str(topic.objects.get(id=list_id).title)
-	elif list_type == 'tag':
+	elif list_type == 'tag': #view by tag
 		#get questions
 		qnlist=[]
-		if (topic_id > 0):
+		if (topic_id > 0): #topic filter
 			qnlist = question.objects.filter(topic_id=topic_id)
-		elif (paperset_id > 0):
+		elif (paperset_id > 0): #paperset filter
 			paper_ids = paper.objects.filter(paperset_id=paperset_id)
 			qnlist = question.objects.filter(paper_id__in=paper_ids)
-		else:
+		else: #clean, no filtering
 			qnlist = question.objects.all()
 		#further filter questions with tags
 		tags = list_id.split('|')
-		tag_list=list(tag.objects.filter(tag__in=tags, question_id__in=qnlist).order_by('question_id').values('question_id').annotate(q_count=Count('question_id')).filter(q_count__gte=len(tags)))
+		tag_list=list(tag.objects.filter(tag__id__in=tags, question_id__in=qnlist).order_by('question_id').values('question_id').annotate(q_count=Count('question_id')).filter(q_count__gte=len(tags)))
 		qid_set=[]
 		for tagitem in tag_list:
 			qid_set.append(tagitem['question_id'])
@@ -362,10 +354,24 @@ def add_math_question(request,list_type,subj_id,page_no):
 		sel = list(question.objects.filter(pk__in=qid_set).only('id','content','question_no','marks').order_by('id').values())
 		param['cur_subj'] = 1
 		title=''
+		#pack a list for description of formula and concept being used
+		formula=[]
+		concept=[]
 		for t in tags:
-			title+= t + ', '
+			tag_def=tag_definitions.objects.get(id=t)
+			title+= tag_def.title + ', '
+			if tag_def.type == 'F':
+				formula.append(tag_def.content)
+			elif tag_def.type == 'C':
+				concept.append(tag_def.content)
 		title=title[0:len(title)-2]
+		param['formula']=formula
+		param['concept']=concept
 		page_title='Tags (' + title + ')'
+	elif list_type == 'single': #view as single question
+		sel=list(question.objects.filter(id=list_id).only('id','content','question_no','marks').order_by('id').values())
+		param['cur_subj']=question.objects.get(id=list_id).topic_id.subject_id_id
+		page_title = "Question ID: " + list_id
 	
 	#to display number of questions (and assist in other operations)
 	no_of_qn=len(sel)
@@ -387,13 +393,51 @@ def add_math_question(request,list_type,subj_id,page_no):
 	
 	#call helper method to process content of each question
 	for q in page_items:
+		#pack in related content
 		q['taglist']=[]
 		q['topic']=topic.objects.get(id=q['topic_id_id']).title
 		q['subtopic']=subtopic.objects.get(id=q['subtopic_id_id']).title
 		p=paper.objects.get(id=q['paper_id_id'])
 		q['paper']=str(p.year) + ' ' + p.month + ' Paper ' + str(p.number)
-		q['display']=process_question(q)
-		taglist = tag.objects.filter(question_id=q['id'])
+		
+		#the main question display
+		q['display']=process_question(q) 
+		
+		if list_type == "tag":
+			#list keywords involved. ONLY keywords
+			keywordTags = ''
+			tags = list_id.split('|')
+			for t in tags:
+				tagdef = tag_definitions.objects.get(id=t)
+				if tagdef.type == "K":
+					keywordTags += tagdef.content + '|'
+			keywordTags = keywordTags[0:len(keywordTags)]
+			#track down the keyword and BOLD it
+			for qitem in q['display']:
+				if qitem['type'] == 1:
+					for keyword in keywordTags.split('|'):
+						p = re.compile('^' + keyword + '$')
+						newstring=''
+						for word in qitem['value'].split():
+							if word[-1:] == ',':
+								word = word[0:len(word)-1]
+								if p.match(word) != None:
+									newstring += '<b>' + word + '</b>' + ', '
+								else:
+									newstring += word + ', '
+							else:
+								if p.match(word) != None:
+									newstring += '<b>' + word + '</b>' + ' '
+								else:
+									newstring += word + ' '
+						qitem['value']=newstring
+		
+		#pack the answer
+		q['displayans']=''
+		if len(answer.objects.filter(question_id=q['id'])) > 0:
+			ans=list(answer.objects.filter(question_id=q['id']).values())[0]
+			q['displayans']=process_solution(ans)
+		taglist = tag.objects.filter(question_id=q['id']).order_by('tag__title')
 		if len(taglist) != 0:
 			for t in taglist:
 				q['taglist'].append(t)
@@ -414,6 +458,26 @@ def add_math_question(request,list_type,subj_id,page_no):
 			
 	return render_to_response('add_math_question.html',param)
 
+#page displays concept and formula tags based on topics	
+def add_math_concept(request,subj_id):
+	param={}
+	#for topic dropdown
+	param['topics'] = topic.objects.filter(subject_id_id=subj_id)
+	param['cur_subj']=subject.objects.get(id=subj_id)
+	
+	tpc_id = 0 #default
+	#retrieve topic_id if found
+	if request.GET.get('topic_id') != None:
+		tpc_id = request.GET.get('topic_id')
+	param['topic_id'] = int(tpc_id)
+	 
+	if tpc_id != None: #if topic_id found, display the concepts and formulae only
+		taglist = tag_definitions.objects.filter(topic_id=tpc_id, type__in='C,F').order_by('type')
+		param['taglist'] = taglist
+	
+	
+	return render_to_response('add_math_concept.html',param)
+	
 #Display question selected from question list
 """
 def display_add_math_question(request,question_id):
@@ -519,21 +583,6 @@ def process_solution(q):
 			img_iterator=img_iterator+1
 		display.append(item)
 	return display
-
-	
-#displaying of add math solution
-def add_math_solution(request,q_id):
-	ans=None
-	if len(answer.objects.filter(question_id=q_id)) > 0:
-		ans=list(answer.objects.filter(question_id=q_id).values())[0]
-		ans['display']=process_solution(ans)
-	
-	param={'sol':ans}
-	#for links
-	param['subject']=subject.objects.all()
-	
-	return render_to_response('add_math_solution.html',param)
-	
 	
 #____________________#
 #start admin code for Additional Maths (For modifying questions)
@@ -547,10 +596,7 @@ def AddMaths_Admin(request,subj_id):
 	param['papers']=list(paper.objects.filter(subject_id=subj_id,number__gt=0).only('id','year','month','number').order_by('id').values())	
 	
 	topics=list(topic.objects.filter(subject_id=subj_id).order_by('id').values())
-	#topics.reverse()
 	param['topics']=topics
-	#for t in topics:		
-	#	param['topics'][0:0]=list(subtopic.objects.filter(topic_id=t['id']).values() )
 	
 	param['sol_type']=[]
 	for k in sol_format.keys():
@@ -674,7 +720,8 @@ def AddMaths_Admin_QuestionForm(request,list_type,page_no,list_id,subj_id,questi
 		param['display']='\n'+param['question'].content.replace(';','\n')
 		if len(answer.objects.filter(question_id=question_id)) == 1:
 			param['answer']='\n'+answer.objects.get(question_id=question_id).content.replace(';','\n')
-		param['tags']=tag.objects.filter(question_id=question_id)
+		param['tags']=tag.objects.select_related().filter(question_id=question_id)
+		param['tagdefs']=tag_definitions.objects.all()
 		
 		#split the solution into groups then into individual answers
 		sol=param['question'].input.split(';')
@@ -825,6 +872,7 @@ def AddMaths_qChange(request,list_type,page_no,subj_id):
 	q_type=request.POST.get('a_type','')
 	q_ans=request.POST.get('a_ans','')
 	q_tag=request.POST.get('a_tag','')
+	q_new_tag=request.POST.get('a_new_tag','')
 	
 	q_item=None
 	if(q_id!=''):
@@ -897,12 +945,23 @@ def AddMaths_qChange(request,list_type,page_no,subj_id):
 	oldtags = tag.objects.filter(question_id=q_item.id)
 	oldtags.delete()
 	
-	newtags = q_tag.split('||') #split into tags
-	for newtag in newtags:
-		columns = newtag.split(';') #split into tag,type
-		if (len(columns) == 2): #verify both tag and type exists
-			new_tag_record = tag(question_id=q_item, tag=columns[0], type=columns[1])
-			new_tag_record.save()
+	#existing tag format
+	etags = q_tag.split(';') #split into tags
+	for etag in etags:
+		if etag != '':
+			if len(tag_definitions.objects.filter(id=int(etag))) > 0: #verify tag exists
+				tagdef = tag_definitions.objects.get(id=int(etag))
+				new_etag_record = tag(question_id=q_item, tag=tagdef)
+				new_etag_record.save()
+	#new tag format
+	ntags = q_new_tag.split('||') #split into tags
+	for ntag in ntags:
+		columns = ntag.split(';')
+		if len(columns) == 3: #title, content, type
+			new_ntag_record = tag_definitions(title=columns[0], content=columns[1], type=columns[2])
+			new_ntag_record.save() #create the new tag first
+			new_etag_record = tag(question_id=q_item, tag=new_ntag_record)
+			new_etag_record.save() #save the relationship with the question
 	
 	#answer update
 	if len(answer.objects.filter(question_id=q_item.id)) > 0: #update existing
@@ -949,14 +1008,111 @@ def find_missing_sol(request):
 	param['subject']=subject.objects.all()
 	
 	return render_to_response('add_math_admin_missing_questions.html',param,RequestContext(request))
-	
-#Analyzer section
 
+#display tag list	
+def AddMaths_Admin_TagList(request):
+	param={}
+	
+	tag_type=request.GET.get('type')
+	param['type']=tag_type
+	
+	if tag_type != None:
+		taglist = tag_definitions.objects.filter(type=tag_type).order_by('title')
+		param['taglist']=taglist
+	
+	return render_to_response('add_math_admin_taglist.html',param,RequestContext(request))
+
+#regenerate keywords
+def AddMaths_Admin_RegenKeyword(request):
+	param={}
+	
+	keywords = tag_definitions.objects.filter(type='K')
+	#delete old keywords relationships
+	oldkeywordtags = tag.objects.filter(tag__in=keywords)
+	oldkeywordtags.delete()
+	
+	for keyword in keywords:
+		keywordfound = question.objects.filter(content__regex='[[:<:]]'+keyword.content+'[[:>:]]') #search for keyword
+		for kf in keywordfound:
+			#create new tag relationship
+			newtag = tag(question_id=kf, tag=keyword)
+			newtag.save()
+	
+	
+	return render_to_response('add_math_admin_taglist.html',param,RequestContext(request))
+
+#delete a tag
+def AddMaths_Admin_DeleteTag(request):
+	param={}
+	
+	tag_id = int(request.GET.get('id'))
+	
+	if tag_id > 0:
+		tagdef = tag_definitions.objects.get(id=tag_id)
+		tags = tag.objects.filter(tag=tagdef)
+		tags.delete()
+		tagdef.delete()
+	
+	return render_to_response('add_math_admin_taglist.html',param,RequestContext(request))
+
+#create/modify a tag	
+def AddMaths_Admin_TagForm(request):
+	param={}
+	param['topics'] = topic.objects.all()
+	
+	tag_id = 0
+	if request.GET.get('id') != None:
+		tag_id = int(request.GET.get('id'))
+	
+	if tag_id > 0:
+		tagdef = tag_definitions.objects.get(id=tag_id)
+		param['tag_def'] = tagdef
+	
+	return render_to_response('add_math_admin_tagform.html',param,RequestContext(request))
+
+#save a tag	
+def AddMaths_Admin_SaveTag(request):
+	param={}
+	
+	#parameter values
+	tag_id=request.POST.get('tag_id','')
+	tag_title=request.POST.get('title','')
+	tag_type=request.POST.get('type','')
+	tag_topic=request.POST.get('topic','')
+	tag_content=request.POST.get('desc','')
+	
+	if tag_id != '': #existing tag
+		tagdef = tag_definitions.objects.get(id=tag_id) #retrieve old object
+		if tag_title != '' and tag_type != '': #check mandatory attributes before modifications
+			tagdef.title = tag_title
+			tagdef.type = tag_type
+			if int(tag_topic) == 0: #null a topic if not assigned
+				tagdef.topic = None
+			else:
+				tagdef.topic = topic.objects.get(id=tag_topic) #assign topic
+			tagdef.content = tag_content
+			tagdef.save()
+	else: #new tag
+		if tag_title != '' and tag_type != '': #check mandatory attributes before modifications
+			tpc = None
+			if tag_topic > 0:
+				tpc = topic.objects.get(id=tag_topic) #assign topic if found
+			tagdef = tag_definitions(title=tag_title, type=tag_type, topic=tpc, content=tag_content)
+			tagdef.save()
+	
+	return render_to_response('add_math_admin_taglist.html',param,RequestContext(request))
+	
+#_________________________ Analyzer section ______________________________#
+
+#main page for analyzer. basically no computation at the moment. keep for future use to make dashboard
 def analyzer_main(request,subj_id):
 	param={}
-	param['subj_id']=subj_id
+	param['subj_id']=subject.objects.get(id = subj_id)
+	
 	return render_to_response('analyzer_main.html',param,RequestContext(request))
 
+	
+#Tag class for tags	
 class Tag:
     def __init__(self, name, count):
 		self.name = name
@@ -965,32 +1121,38 @@ class Tag:
     # Return a string representation of this Point
     def __repr__(self):
         return self
-	
+
+#Paper Tag section		
 def analyzer_paper_tag(request,subj_id):
 	param={}
 	
-	#query list of papers
+	#query list of papersets
 	param['papersets']=paperset.objects.filter(subject_id=subj_id).order_by('id')
 	
 	#default dropdownlist options
 	paperset_id = 0
 	tag_type = "All"
-	combi = 1
+	combi = 0
 	
-	if request.GET.get("paperset_id") != None:
+	if request.GET.get("paperset_id") != None: #compute only when a paperset is selected
+		#get tag cloud settings
 		paperset_id = request.GET.get("paperset_id")
 		combi = int(request.GET.get("combi"))
 		tag_type = request.GET.get("tag_type")
+		
+		#retrieve the questions
 		paper_ids = paper.objects.filter(paperset_id=paperset_id).values('id')	
 		qnlist = question.objects.filter(paper_id__in=paper_ids).values('id')
 		
 		if (combi == 1): #singular-tag cloud
 			onetags=None
-			if (tag_type == "All"):
-				onetags = tag.objects.filter(question_id__in=qnlist).values('tag', 'type').annotate(tag_count=Count('tag')).order_by('tag') #get list of tags
-			else:
-				onetags = tag.objects.filter(question_id__in=qnlist, type=tag_type).values('tag', 'type').annotate(tag_count=Count('tag')).order_by('tag') #get list of tags
-		
+			if (tag_type == "All"): #for all tags
+				onetags = tag.objects.filter(question_id__in=qnlist).values('tag__id', 'tag__title').annotate(tag_count=Count('tag')).order_by('tag__title') #get list of tags
+			elif (tag_type == "CF"): #concepts and formulae only
+				onetags = tag.objects.filter(question_id__in=qnlist, tag__type__in='C,F').values('tag__id', 'tag__title').annotate(tag_count=Count('tag__title')).order_by('tag__title') #get list of tags
+			else: #individual types
+				onetags = tag.objects.filter(question_id__in=qnlist, tag__type=tag_type).values('tag__id', 'tag__title').annotate(tag_count=Count('tag__title')).order_by('tag__title') #get list of tags
+			
 			#tag cloud settings
 			f_max = 36 #font size maximum
 			#font size is determined by:
@@ -1001,116 +1163,226 @@ def analyzer_paper_tag(request,subj_id):
 			t_min = 999999 #min frequency initialized as 999999 at first
 			t_max = 0 #max frequency initialized as 0 at first
 			
+			#calibrating the max min fonts
 			for tagitem in onetags:
+				tagdef = tag_definitions.objects.get(id=tagitem['tag__id'])
+				tagitem['tag__content'] = tagdef.content
+				tagitem['tag__type'] = tagdef.type
 				if tagitem['tag_count'] < t_min:
 					t_min = tagitem['tag_count']
 				if tagitem['tag_count'] > t_max:
-					t_max = tagitem['tag_count']
-					
+					t_max = tagitem['tag_count']	
+			
 			#packing the tag cloud
 			onecloud=[]
 			for tagitem in onetags:
-				onecloud.append({'tag': tagitem['tag'],
-							  'type': tagitem['type'],
+				onecloud.append({'id': tagitem['tag__id'],
+							  'tag': tagitem['tag__content'],
+							  'type': tagitem['tag__type'],
+							  'title': tagitem['tag__title'],
 							  'count': tagitem['tag_count'],
 							  'size': size(f_max,t_max,t_min,tagitem['tag_count'])})
 			param['onecloud'] = onecloud
 		else: #multi-tags cloud
 			multicloud=[]
+			tagcollection=[]
 			c = Counter()
 			questions = question.objects.filter(id__in=qnlist).prefetch_related('tags') # prefetch M2M
 			for q in questions:
 				# sort them so 'point' + 'curve' == 'curve' + 'point'
 				tags = None
-				if (tag_type == "All"):
+				if (tag_type == "All"): #all tags
 					tags = sorted([t.tag for t in q.tags.all()])
-				else:
-					tags = sorted([t.tag for t in q.tags.filter(type=tag_type)])
+				elif (tag_type == "CF"): #concepts and formulae only
+					tags = sorted([t.tag for t in q.tags.filter(tag__type__in="C,F")])
+				else: #individual types
+					tags = sorted([t.tag for t in q.tags.filter(tag__type=tag_type)])
 				c.update(combinations(tags,combi)) # get all combinations and update counter
 			for key, value in c.most_common(50): # show the top 50
+				#build the display format
 				keytitle=''
 				keylink=''
 				for k in key:
-					keytitle += k + ', '
-					keylink += k + '|'
+					keytitle += k.title + ', '
+					keylink += str(k.id) + '|'
 				keytitle=keytitle[0:len(keytitle)-2]
 				keylink=keylink[0:len(keylink)-1]
+				#pack to the cloud
 				multicloud.append({'tag': keytitle, 'link':keylink, 'count': value})
 			param['multicloud']=multicloud
-	
+		
+		#pack the tag legend
+		tagset=None
+		if (tag_type == "All"): #all tags
+			tagset = tag.objects.filter(question_id__in=qnlist).values('tag__id', 'tag__title').annotate(tag_count=Count('tag')).order_by('tag__title') #get list of tags
+		elif (tag_type == "CF"): #concept and formula only
+			tagset = tag.objects.filter(question_id__in=qnlist, tag__type__in='C,F').values('tag__id', 'tag__title').annotate(tag_count=Count('tag__title')).order_by('tag__title') #get list of tags
+		else: #individual types
+			tagset = tag.objects.filter(question_id__in=qnlist, tag__type=tag_type).values('tag__id', 'tag__title').annotate(tag_count=Count('tag__title')).order_by('tag__title') #get list of tags
+		
+		conceptTags=[]
+		formulaTags=[]
+		for tagitem in tagset:
+			tagdef = tag_definitions.objects.get(id=tagitem['tag__id'])
+			tagitem['tag__content'] = tagdef.content
+			if tagdef.type == "C":
+				conceptTags.append({'title': tagitem['tag__title'],
+									'content': tagitem['tag__content']})
+			elif tagdef.type == "F":
+				formulaTags.append({'title': tagitem['tag__title'],
+									'content': tagitem['tag__content']})
+		param['conceptTags'] = conceptTags
+		param['formulaTags'] = formulaTags
+		
 	param['paperset_id'] = int(paperset_id)
 	param['subj_id'] = subj_id
 	param['combi'] = combi
 	param['tag_type'] = tag_type
-		
+	param['subj_id_id']=subject.objects.get(id = subj_id)
+	
 	return render_to_response('analyzer_paper_tag.html',param,RequestContext(request))
 
+#Topic distribution section	
 def analyzer_paper_topic_distribution(request,subj_id):
 	param={}
-	
-	cloud = []
 	
 	#query list of papers
 	param['papersets']=paperset.objects.filter(subject_id=subj_id).order_by('id')
 	
 	paperset_id = 0 #default
-	if request.GET.get("paperset_id") != None:
+	type="percent" #default
+	if request.GET.get("paperset_id") != None: #compute only if paperset is chosen
+		#get distribution settings
+		topics = topic.objects.filter(subject_id=subj_id).order_by('id')
 		paperset_id = request.GET.get("paperset_id")
+		type = request.GET.get("type")
 		
+		#retrieve the papers
+		paper_ids = paper.objects.filter(paperset_id=paperset_id).values('id')
+		
+		dataset=[]
+		
+		#graph starts here
+		total_marks=0
+		topicData=[]
+		sidebarData=[]
+	
+		for t in topics:
+			if type == "percent": #by marks weightage
+                                
+				t_questions = question.objects.filter(topic_id=t.id, paper_id__in=paper_ids)
+				
+				topic_marks = 0 #each topic starts at 0 marks distribution
+				
+				if len(t_questions) != 0:
+                               
+					for t_question in t_questions:
+						topic_marks += t_question.marks #accumulate the marks
+					#update data point to dataset
+					if topic_marks > 0:
+						dataset.append({'name': t.title,
+										'value': topic_marks})
+				total_marks+=topic_marks #add to total marks
+				
+			elif type == "count": #by question count weightage
+				t_questions = question.objects.filter(topic_id=t.id, paper_id__in=paper_ids)
+				topic_count = len(t_questions) #topic count is number of question related to this topic
+				#update data point to dataset
+				if topic_count > 0:
+					dataset.append({'name': t.title,
+									'value': topic_count})
+			#for side-bar details
+			qcount = len(question.objects.filter(topic_id=t.id, paper_id__in=paper_ids))
+			if qcount > 0:
+				topicData.append({'topic_id': t.id,
+								  'topic_name': t.title,
+								  'count': qcount})
+		param['dataset']=dataset
+		param['total_marks']=total_marks
+		
+		#append each paperset's title and topic data
+		pset = paperset.objects.get(id=paperset_id)
+		sidebarData.append({'paperset_id': pset.id,
+							'paperset': pset.title,
+							'topicdata': topicData})
+		param['sidebarData'] = sidebarData
 	param['paperset_id'] = int(paperset_id)
 	param['subj_id'] = subj_id
-		
+	param['type'] = type
+	
+	param['subj_id_id']=subject.objects.get(id = subj_id)	
 	return render_to_response('analyzer_paper_topic_distribution.html',param,RequestContext(request))
+	
+#Concept Distribution Section
+def analyzer_paper_concept_distribution(request, subj_id):
+	param = {}
+	
+	#query list of papers
+	param['papersets']=paperset.objects.filter(subject_id=subj_id).order_by('id')
+	param['topics']=topic.objects.filter(subject_id=subj_id).order_by('id')
+	
+	paperset_id = 0 #default
+	topic_id = 0 #default
+	if request.GET.get("paperset_id") != None: #compute only if paperset is chosen
+		#get distribution settings
+		topic_id = request.GET.get("topic_id")
+		paperset_id = request.GET.get("paperset_id")
+		
+		#retrieve the papers
+		paper_ids = paper.objects.filter(paperset_id=paperset_id).values('id')
+		
+		#retrieve the concepts
+		concepts = tag_definitions.objects.filter(topic_id=topic_id, type="C")
+		
+		dataset=[] #for graph
+		conceptData=[] #for sidebar links
+		sidebarData=[] #for sidebar links
+		
+		#graph starts here
+		total_count = 0
+		for c in concepts:
+			concept_count = 0
+			questions = question.objects.filter(paper_id__in=paper_ids)
+			for q in questions:
+				tag_result = tag.objects.filter(question_id=q.id, tag_id=c.id)
+				if len(tag_result) > 0: #question has concept
+					concept_count += 1
+				total_count += 1
+			if concept_count > 0:
+				dataset.append({'name': c.title,
+								'value': concept_count})
+			conceptData.append({'concept_id': c.id,
+								'concept_title': c.title,
+								'count': concept_count})
+		pset = paperset.objects.get(id=paperset_id)
+		sidebarData.append({'paperset_id': pset.id,
+							'paperset': pset.title,
+							'concepts': conceptData})
+		param['dataset'] = dataset
+		param['totalcount'] = total_count
+		param['sidebarData'] = sidebarData
+	param['paperset_id'] = int(paperset_id)
+	param['topic_id'] = int(topic_id)
+	param['subj_id'] = subj_id	
+	param['subj_id_id']=subject.objects.get(id = subj_id)
+	
+	return render_to_response('analyzer_paper_concept_distribution.html', param, RequestContext(request))
 
-def topic_distribution_chart(request,paperset_id):
-	#Topic Distribution
-	topics = topic.objects.filter(subject_id=1).order_by('id')
-	paper_ids = paper.objects.filter(paperset_id=paperset_id).values('id')
-	plt.rcParams['font.size'] = 8.0
-	
-	fig = Figure(figsize=(10.5,10.5), facecolor=None, edgecolor=None)
-	ax = fig.add_subplot(111)
-	
-	group_labels = [] #list of x-axis tick labels
-	y = [] #list of y-values
-	explode = []
-	for topiclet in topics:
-		t_questions = question.objects.filter(topic_id=topiclet.id, paper_id__in=paper_ids)
-		if (len(t_questions) != 0):
-			topic_marks = 0 #each topic starts at 0 marks distribution
-			for t_question in t_questions:
-				topic_marks += t_question.marks #accumulate the marks
-			y.append(topic_marks)
-			explode.append(0.1)
-			group_labels.append(topiclet.title)
-	
-	ax.pie(y, explode=explode, labels=group_labels, colors=("b","y","m","c","g","r","w",'0.75'), autopct='%1.1f%%', shadow=False, startangle=90)
-	
-	fontP=FontProperties()
-	fontP.set_size('small')
-	
-	ax.legend(title="legend", loc = 0, bbox_to_anchor = (0.9, 0.0), prop=fontP)
-	fig.autofmt_xdate()
-	canvas=FigureCanvas(fig)
-	response=HttpResponse(content_type='image/png')
-	canvas.print_png(response)
-	plt.close(fig)
-	
-	return response
-
+#Topic Trend Section	
 def analyzer_paper_topic_trend(request,subj_id):
 	param={}
-	
-	cloud = []
 	
 	#query list of papers
 	param['papersets']=paperset.objects.filter(subject_id=subj_id).order_by('id')
 	
-	start_paperset_id = -1 #default
+	#defaults
+	start_paperset_id = -1 
 	end_paperset_id = -1
 	topicall = ''
 	type = ''
 	sel_topics = []
+	
+	#retrieve settings
 	if request.GET.get("start_paperset") != None:
 		start_paperset_id = request.GET.get("start_paperset")
 	if request.GET.get("end_paperset") != None:
@@ -1121,6 +1393,8 @@ def analyzer_paper_topic_trend(request,subj_id):
 		topicall = request.GET.get("topicall")
 	if request.GET.get("type") != None:
 		type = request.GET.get("type")
+	
+	#extract the topic list from checkboxes
 	topicstring = ''
 	topiclist=list()
 	for t in sel_topics:
@@ -1129,6 +1403,8 @@ def analyzer_paper_topic_trend(request,subj_id):
 	
 	#for sidebar data
 	sidebarData=[]
+	yTitle=''
+	graphData=[]
 	papersets = paperset.objects.filter(id__gte=start_paperset_id,id__lte=end_paperset_id)
 	for pset in papersets:
 		paper_ids = paper.objects.filter(paperset_id=pset.id).values('id')
@@ -1144,49 +1420,17 @@ def analyzer_paper_topic_trend(request,subj_id):
 		sidebarData.append({'paperset_id': pset.id,
 							'paperset': pset.title,
 							'topicdata': topicData})
-	param['sidebarData'] = sidebarData
-		
-	param['start_paperset_id'] = int(start_paperset_id)
-	param['end_paperset_id'] = int(end_paperset_id)
-	param['subj_id'] = subj_id
-	param['topicall'] = topicall
-	param['topicstring'] = topicstring
-	param['type'] = type
-	param['sel_topics'] = topiclist
-	param['topics']=topic.objects.all().order_by('title')
-		
-	return render_to_response('analyzer_paper_topic_trend.html',param,RequestContext(request))
-	
-def topic_trend_chart(request):
-	param={}
-	
-	#Get topic set
-	start_paperset_id = request.GET.get("start_id")
-	end_paperset_id = request.GET.get("end_id")
-	topicstring = request.GET.get("topic")
-	type = request.GET.get("type")
-	topicstring = topicstring[0:len(topicstring)-1]
-	sel_topics = topicstring.split(',')
-	topics = topic.objects.filter(id__in=sel_topics).order_by('id')
-	#topics = topic.objects.all().order_by('id')
-	#Collect papers
-	papersets = paperset.objects.filter(id__gte=start_paperset_id,id__lte=end_paperset_id)
-	
-	fig = Figure(figsize=(10.5,10.5), facecolor=None, edgecolor=None)
-	plt.rcParams['font.size'] = 8.0
-	ax = fig.add_subplot(111)
-	group_labels = [] #list of x-axis tick labels
-	for tpc in topics:
-		group_labels.append(tpc.title)
-	
-	lines=[]
-	for pset in papersets:
-		paper_ids = paper.objects.filter(paperset_id=pset.id).values('id')
+		#graph data
 		valuelist=[]
-		if type ==  "percent":
+		yTitle=''
+		topics = topic.objects.filter(id__in=sel_topics).order_by('id')
+		param['x_axis'] = topics #x axis display
+		if type ==  "percent": #by marks weightage
+			yTitle="Percentage %"
 			qnlist = question.objects.filter(paper_id__in=paper_ids).values('topic_id').annotate(topic_marks=Sum('marks')).order_by('topic_id')
 			papertotal = question.objects.filter(paper_id__in=paper_ids).aggregate(total_marks=Sum('marks'))
 			
+			#find percentage for each topic
 			for tpc in topics:
 				percent = 0
 				for qn in qnlist:
@@ -1194,39 +1438,93 @@ def topic_trend_chart(request):
 						marks = qn['topic_marks']
 						percent = marks*100 / float(papertotal['total_marks'])
 				valuelist.append(percent)
-		elif type == "count":
+		elif type == "count": #by question count
+			yTitle="Question Count"
 			qnlist = question.objects.filter(paper_id__in=paper_ids).values('topic_id').annotate(total_qn=Count('topic_id')).order_by('topic_id')
 			
+			#find count for each topic
 			for tpc in topics:
 				totalqn = 0
 				for qn in qnlist:
 					if (qn['topic_id'] == tpc.id):
 						totalqn = qn['total_qn']
 				valuelist.append(totalqn)
-			
-		title = pset.title
-		ax.plot ( valuelist,'.-',label=title)
 		
-			
-		
-	fontP=FontProperties()
-	fontP.set_size('medium')
+		#update graph data point
+		graphData.append({'name': pset.title,
+						  'value': valuelist})
 	
-	ax.set_xticks(np.arange(0, len(topics)))
-	ax.set_xticklabels(group_labels)
-	ax.set_xlabel('Topics')
-	if type == "percent":
-		ax.set_ylabel('Percentage')
-	elif type == "count":
-		ax.set_ylabel('Number of Questions')
-	ax.legend(title="legend", loc = 2, bbox_to_anchor = (0.93, 1.0), prop=fontP)
-	fig.autofmt_xdate()
-	canvas=FigureCanvas(fig)
-	response=HttpResponse(content_type='image/png')
-	canvas.print_png(response)
-	plt.close(fig)
-		
-	return response
+	param['sidebarData'] = sidebarData
+	param['yTitle'] = yTitle
+	param['graphData'] = graphData
+	param['start_paperset_id'] = int(start_paperset_id)
+	param['end_paperset_id'] = int(end_paperset_id)
+	param['subj_id'] = subj_id
+	param['topicall'] = topicall
+	param['topicstring'] = topicstring
+	param['type'] = type
+	param['sel_topics'] = topiclist
+	param['topics']=topic.objects.filter(subject_id_id=subj_id).order_by('id')
+	param['subj_id_id']=subject.objects.get(id = subj_id)
+	
+	return render_to_response('analyzer_paper_topic_trend.html',param,RequestContext(request))
+
+#Concept Trend Section
+def analyzer_paper_concept_trend(request, subj_id):
+	param={}
+	
+	#query list of papers
+	param['papersets']=paperset.objects.filter(subject_id=subj_id).order_by('id')
+	param['topics']=topic.objects.filter(subject_id=subj_id).order_by('id')
+	
+	#defaults
+	start_paperset_id = -1 
+	end_paperset_id = -1
+	topic_id = -1
+	
+	#retrieve settings
+	if request.GET.get("start_paperset") != None:
+		start_paperset_id = request.GET.get("start_paperset")
+	if request.GET.get("end_paperset") != None:
+		end_paperset_id = request.GET.get("end_paperset")
+	if request.GET.get("topic_id") != None:
+		topic_id = request.GET.get("topic_id")
+	
+	#for sidebar data
+	sidebarData=[]
+	
+	graphData=[]
+	papersets = paperset.objects.filter(id__gte=start_paperset_id,id__lte=end_paperset_id)
+	concepts = tag_definitions.objects.filter(topic_id=topic_id, type="C")
+	
+	for pset in papersets:
+		valuelist=[]
+		paper_ids = paper.objects.filter(paperset_id=pset.id).values('id')
+		qnlist = question.objects.filter(paper_id__in=paper_ids).values('id')
+		conceptData=[]
+		for concept in concepts:
+			concept_count = len(tag.objects.filter(question_id_id__in=qnlist, tag_id=concept.id))
+			conceptData.append({'concept_id': concept.id,
+								'concept_title': concept.title,
+								'count': concept_count})
+			valuelist.append(concept_count)
+		graphData.append({'name': pset.title,
+						'value': valuelist})
+		sidebarData.append({'paperset_id': pset.id,
+							'paperset': pset.title,
+							'concept': conceptData})
+	
+	param['graphData'] = graphData
+	param['sidebarData'] = sidebarData
+	param['start_paperset_id'] = int(start_paperset_id)
+	param['end_paperset_id'] = int(end_paperset_id)
+	param['subj_id'] = subj_id
+	param['topic_id'] = int(topic_id)
+	param['concepts']=concepts
+	param['subj_id_id']=subject.objects.get(id = subj_id)
+	
+	return render_to_response('analyzer_paper_concept_trend.html', param, RequestContext(request))
+	
 	
 #K-Means Section
 # -- The Point class represents points in n-dimensional space
@@ -1314,7 +1612,8 @@ def getDistance(a, b):
     for i in range(a.n):
         ret = ret+pow((a.coords[i]-b.coords[i]), 2)
     return math.sqrt(ret)
-	
+
+#Clustering Section	
 def analyzer_topic_cluster(request,subj_id):
 	param={}
 	
@@ -1322,62 +1621,85 @@ def analyzer_topic_cluster(request,subj_id):
 	topics=list(topic.objects.filter(subject_id=subj_id).order_by('id').values())
 	param['topics']=topics
 	
+	#kvalue dropdown choices
+	kvaluelist = ['Use Default', 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+	param['kvaluelist']=kvaluelist
+	
 	topic_id = 13 #default None is 13
-	if request.GET.get("topic_id") != None:
+	
+	if request.GET.get("topic_id") != None: #compute only if topic chosen
+		#get topic object
 		topic_id = request.GET.get("topic_id")
-		
 		topicObj = topic.objects.get(id=topic_id)
 		
 		k = 0 #initialize k
 		if topicObj != None:
-			if topicObj != None:
+			kvalue = request.GET.get("k_value") #retrieve k-value if defined by user
+			param['k_value'] = kvalue
+			if kvalue != None: #if found
+				if kvalue == "Use Default": #if told to use default
+					k = topicObj.kvalue
+				else: #user-defined
+					k = int(kvalue)
+			else: #go by default from topic
 				k = topicObj.kvalue
-			else:
-				k = 5 #default
-		else:
-			k = 5 #default
 		
-		cutoff = 0.5
-		points=[]
-		
-		distinctTags = tag.objects.filter(question_id__in=question.objects.filter(topic_id=topic_id).values('id')).values('tag').order_by('tag').annotate()
-		for q in question.objects.filter(topic_id=topic_id).values(): #all questions in selected topic
-			questiontags = tag.objects.filter(question_id=q['id']).values('tag').order_by('tag')
-			point=[]
-			for t in distinctTags:
-				if t in questiontags:
-					point.append(1)
-				else:
-					point.append(0)
-			#reference data
-			paperobj = paper.objects.get(id=q['paper_id_id'])
-			papertitle=str(paperobj.year) + ' ' + paperobj.month + ' Paper ' + str(paperobj.number)
-			#add in Point as point vertices, question object, paper, taglist
-			pt=Point(point, q)
-			pt.paper = papertitle
-			tagstring=''
-			for p in questiontags:
-				tagstring += p['tag'] + ','
-			tagstring=tagstring[0:len(tagstring)-1]
-			pt.taglist = tagstring
-			pt.display = process_question(q)
-			points.append(pt)
-		clusters = kmeans(points, k, cutoff)
+			cutoff = 0.5 #by default
+			points=[] #empty points
+			
+			#get all distinct tags
+			distinctTags = tag.objects.filter(question_id__in=question.objects.filter(topic_id=topic_id).values('id')).values('tag__content','tag__title').order_by('tag__content').annotate()
+			
+			for q in question.objects.filter(topic_id=topic_id).values(): #all questions in selected topic
+				questiontags = tag.objects.filter(question_id=q['id']).values('tag__content','tag__title').order_by('tag__content') #get tag list for the question
+				
+				#build document vector
+				point=[]
+				for t in distinctTags:
+					if t in questiontags:
+						point.append(1)
+					else:
+						point.append(0)
+				
+				#reference data
+				paperobj = paper.objects.get(id=q['paper_id_id'])
+				papertitle=str(paperobj.year) + ' ' + paperobj.month + ' Paper ' + str(paperobj.number)
+				
+				#add in Point with document vector, question object, paper, taglist
+				pt=Point(point, q)
+				pt.paper = papertitle
+				tagstring=''
+				for p in questiontags:
+					tagstring += p['tag__title'] + ', '
+				tagstring=tagstring[0:len(tagstring)-2]
+				pt.taglist = tagstring
+				pt.display = process_question(q)
+				points.append(pt)
+			
+			#do the clustering
+			clusters = kmeans(points, k, cutoff)
+			
+			#post-process to fit visualization
+			for i, c in enumerate(clusters):
+				group_id=[]
+				for p in c.points:
+					group_id.append(p.reference['id'])
+				commontags = tag.objects.filter(question_id__in=group_id).values('tag__title','tag__content').annotate(tag_count=Count('tag__title')).filter(tag_count__gte=len(group_id))
+				for common in commontags:
+					common['tag__type']= tag_definitions.objects.get(content=common['tag__content']).type
+					common['tag__id']= tag_definitions.objects.get(content=common['tag__content']).id
+				c.commontags = commontags
+			
+			#pass the result
+			param['clusters'] = enumerate(clusters)
 	
-		#param['clusters'] = enumerate(clusters)
-		
-		for i, c in enumerate(clusters):
-			group_id=[]
-			for p in c.points:
-				group_id.append(p.reference['id'])
-			commontags = tag.objects.filter(question_id__in=group_id).values('tag','type').annotate(tag_count=Count('tag')).filter(tag_count__gte=len(group_id))
-			c.commontags = commontags
-		param['clusters'] = enumerate(clusters)
 	param['subj_id'] = subj_id
 	param['topic_id'] = int(topic_id)
+	param['subj_id_id']=subject.objects.get(id = subj_id)
 	
 	return render_to_response('analyzer_topic_cluster.html',param,RequestContext(request))
-	
+
+#Topic Tag Section	
 def analyzer_topic_tag(request,subj_id):
 	param={}
 	
@@ -1385,35 +1707,28 @@ def analyzer_topic_tag(request,subj_id):
 	topics=list(topic.objects.filter(subject_id=subj_id).order_by('id').values())
 	param['topics']=topics
 	
-	#temporary hacking code - can delete if found
-	'''keylist = keyword.objects.all()
-	qlist = question.objects.filter(id='199500101008')
-	for k in keylist:
-		for q in qlist:
-			if k.key in q.content.lower():
-				newtag = tag(question_id=q, tag=k.key, type='K')
-				newtag.save()'''
-	'''for k in tag.objects.filter(tag='Differentiation - Higher Derivatives'):
-		newtag = tag(question_id=k.question_id, tag="\[\\frac{\\mathrm{d}^2 y}{\\mathrm{d} x^2} = \\frac{\\mathrm{d} (\\frac{\\mathrm{d} y}{\\mathrm{d} x})}{\\mathrm{d} x}\]", type="F")
-		newtag.save()'''
-	
 	#default options
 	topic_id = 13
 	tag_type = "All"
-	combi = 1
+	combi = 0
 	
-	if request.GET.get("topic_id") != None:
+	if request.GET.get("topic_id") != None: #compute only if topic chosen
+		#get settings
 		topic_id = request.GET.get("topic_id")
 		combi = int(request.GET.get("combi"))
 		tag_type = request.GET.get("tag_type")
+		
+		#get question list
 		qnlist = question.objects.filter(topic_id=topic_id).values('id')
 		
-		if (combi == 1):
+		if (combi == 1): #one tag cloud
 			onetags = None
-			if (tag_type == "All"):
-				onetags = tag.objects.filter(question_id__in=qnlist).values('tag', 'type').annotate(tag_count=Count('tag')).order_by('tag') #get list of tags
-			else:
-				onetags = tag.objects.filter(question_id__in=qnlist, type=tag_type).values('tag', 'type').annotate(tag_count=Count('tag')).order_by('tag') #get list of tags
+			if (tag_type == "All"): #all tags
+				onetags = tag.objects.select_related().filter(question_id__in=qnlist).values('tag__id', 'tag__title').annotate(tag_count=Count('tag__title')).order_by('tag__title') #get list of tags
+			elif (tag_type == "CF"): #concept and formula
+				onetags = tag.objects.select_related().filter(question_id__in=qnlist, tag__type__in='C,F').values('tag__id', 'tag__title').annotate(tag_count=Count('tag__title')).order_by('tag__title') #get list of tags
+			else: #individual type
+				onetags = tag.objects.select_related().filter(question_id__in=qnlist, tag__type=tag_type).values('tag__id', 'tag__title').annotate(tag_count=Count('tag__title')).order_by('tag__title') #get list of tags
 			#tag cloud settings
 			f_max = 36 #font size maximum
 			#font size is determined by:
@@ -1424,7 +1739,11 @@ def analyzer_topic_tag(request,subj_id):
 			t_min = 999999 #min frequency initialized as 999999 at first
 			t_max = 0 #max frequency initialized as 0 at first
 			
+			#calibrating the min max font
 			for tagitem in onetags:
+				tagdef = tag_definitions.objects.get(id=tagitem['tag__id'])
+				tagitem['tag__content'] = tagdef.content
+				tagitem['tag__type'] = tagdef.type
 				if tagitem['tag_count'] < t_min:
 					t_min = tagitem['tag_count']
 				if tagitem['tag_count'] > t_max:
@@ -1433,39 +1752,344 @@ def analyzer_topic_tag(request,subj_id):
 			#packing the tag cloud
 			onecloud = []
 			for tagitem in onetags:
-				onecloud.append({'tag': tagitem['tag'],
-							  'type': tagitem['type'],
+				onecloud.append({'id': tagitem['tag__id'],
+							  'tag': tagitem['tag__content'],
+							  'type': tagitem['tag__type'],
+							  'title': tagitem['tag__title'],
 							  'count': tagitem['tag_count'],
 							  'size': size(f_max,t_max,t_min,tagitem['tag_count'])})
 			param['onecloud'] = onecloud
-		else:
-			#2-Tags
+		else: #multi-tag cloud
 			multicloud=[]
 			c = Counter()
+			
 			questions = question.objects.filter(id__in=qnlist).prefetch_related('tags') # prefetch M2M
+			
 			for q in questions:
 				# sort them so 'point' + 'curve' == 'curve' + 'point'
 				tags = None
-				if (tag_type == "All"):
+				if (tag_type == "All"): #all tags
 					tags = sorted([t.tag for t in q.tags.all()])
-				else:
-					tags = sorted([t.tag for t in q.tags.filter(type=tag_type)])
+				elif (tag_type == "CF"): #concept and formula
+					tags = sorted([t.tag for t in q.tags.filter(tag__type__in='C,F')])
+				else: #individual type
+					tags = sorted([t.tag for t in q.tags.filter(tag__type=tag_type)])
 				c.update(combinations(tags,combi)) # get all combinations and update counter
 			for key, value in c.most_common(50): # show the top 50
+				#format the display
 				keytitle=''
 				keylink=''
 				for k in key:
-					keytitle += k + ', '
-					keylink += k + '|'
+					keytitle += k.title + ', '
+					keylink += str(k.id) + '|'
 				keytitle=keytitle[0:len(keytitle)-2]
 				keylink=keylink[0:len(keylink)-1]
+				#pack to cloud
 				multicloud.append({'tag': keytitle, 'link':keylink, 'count': value})
 			param['multicloud']=multicloud
-					  
+		
+		#pack the tag legend
+		tagset=None
+		if (tag_type == "All"):
+			tagset = tag.objects.select_related().filter(question_id__in=qnlist).values('tag__id', 'tag__title').annotate(tag_count=Count('tag__title')).order_by('tag__title') #get list of tags
+		elif (tag_type == "CF"):
+			tagset = tag.objects.select_related().filter(question_id__in=qnlist, tag__type__in='C,F').values('tag__id', 'tag__title').annotate(tag_count=Count('tag__title')).order_by('tag__title') #get list of tags
+		else:
+			tagset = tag.objects.select_related().filter(question_id__in=qnlist, tag__type=tag_type).values('tag__id', 'tag__title').annotate(tag_count=Count('tag__title')).order_by('tag__title') #get list of tags
+		
+		conceptTags=[]
+		formulaTags=[]
+		for tagitem in tagset:
+			tagdef = tag_definitions.objects.get(id=tagitem['tag__id'])
+			tagitem['tag__content'] = tagdef.content
+			if tagdef.type == "C":
+				conceptTags.append({'title': tagitem['tag__title'],
+									'content': tagitem['tag__content']})
+			elif tagdef.type == "F":
+				formulaTags.append({'title': tagitem['tag__title'],
+									'content': tagitem['tag__content']})
+		param['conceptTags'] = conceptTags
+		param['formulaTags'] = formulaTags
 	
 	param['topic_id'] = int(topic_id)
 	param['subj_id'] = subj_id
 	param['combi'] = combi
 	param['tag_type'] = tag_type
+	param['subj_id_id']=subject.objects.get(id = subj_id)
 		
 	return render_to_response('analyzer_topic_tag.html',param,RequestContext(request))
+
+#For search result	
+def result(request,page_no):
+	param={}
+	
+	#get parameters from HTTP GET
+	tags=[]
+	if request.GET.getlist("tag") != None:
+		tags = request.GET.getlist("tag")
+	topic_id = 0
+	if request.GET.get("topic") != None:
+		topic_id = int(request.GET.get("topic"))
+	type = "search" # default
+	if request.GET.get("type") != None:
+		type = request.GET.get("type")
+		
+	#from the type (paper or topic) passed, query for questions
+	sel=[]
+	image_sel=[]
+	#get questions
+	tag_list=list(tag.objects.filter(tag__title__in=tags).order_by('question_id').values('question_id').annotate(q_count=Count('question_id')).filter(q_count__gte=len(tags)))
+	qid_set=[]
+	for tagitem in tag_list:
+		qid_set.append(tagitem['question_id'])
+	global_sel = list(question.objects.filter(id__in=qid_set).only('id','content','question_no','marks').order_by('id').values())
+	
+	#get images
+	global_image_sel = list(image.objects.filter(qa_id__in=qid_set).order_by('qa_id').values())
+	global_image_id = list(image.objects.filter(qa_id__in=qid_set).order_by('qa_id').values('qa_id'))
+	image_qid_set=[]
+	for image_item in global_image_id:
+		image_qid_set.append(image_item['qa_id'])
+	global_image_q_sel = list(question.objects.filter(id__in=image_qid_set).only('id','content','question_no','marks').order_by('id').values())
+	
+	
+	#pack the topic bar
+	topic_bar=topic.objects.all().order_by('title').values()
+	for t in topic_bar:
+		t['count'] = 0
+	if type == "search":
+		for q in global_sel:
+			for t in topic_bar:
+				if q['topic_id_id'] == t['id']:
+					t['count'] += 1
+	elif type == "image":
+		for q in global_image_sel:
+			for t in topic_bar:
+				if question.objects.get(id=q['qa_id']).topic_id_id == t['id']:
+					t['count'] += 1
+	
+	param['topic_bar']=topic_bar
+	
+	#filter content
+	if type == "search":
+		if topic_id > 0: #filter by topic
+			sel = list(question.objects.filter(id__in=qid_set, topic_id_id=topic_id).only('id','content','question_no','marks').order_by('id').values())
+		else: #all topics
+			sel = global_sel
+	elif type == "image":
+		if topic_id > 0: #filter by topic
+			image_q_sel = list(question.objects.filter(id__in=image_qid_set, topic_id_id=topic_id).order_by('id').values('id'))
+		else: #all topics
+			image_q_sel = global_image_q_sel
+		topic_image_qid_set=[]
+		for image_item in image_q_sel:
+			topic_image_qid_set.append(image_item['id'])
+		image_sel = list(image.objects.filter(qa_id__in=topic_image_qid_set).order_by('qa_id').values())
+	
+	#to display number of questions (and assist in other operations)
+	no_of_qn = 0
+	if type == "search":
+		no_of_qn=len(sel)
+	elif type == "image":
+		no_of_qn=len(image_sel)
+	
+	#addMaths_q_per_page is the number of questions per page
+	#from the list and page number, display current page's questions
+	if type == "image":
+		addMaths_q_per_page = 25
+	else:
+		addMaths_q_per_page = 10
+	page_items=[]
+	for i in range(0,addMaths_q_per_page):
+		if( (i + addMaths_q_per_page * (int(page_no) - 1))<no_of_qn):
+			if type == "search":
+				page_items.append(sel[i + addMaths_q_per_page * (int(page_no)-1)])
+			elif type == "image":
+				page_items.append(image_sel[i + addMaths_q_per_page * (int(page_no)-1)])
+	
+	#create links of pages (determine number of pages)
+	no_pages=no_of_qn/addMaths_q_per_page
+	if((no_of_qn % addMaths_q_per_page)!=0):
+		no_pages=no_pages+1
+	page_links=[]
+	for i in range(1,no_pages+1):
+		page_links.append(i)
+	
+	#call helper method to process content of each question
+	if type == "search":
+		for q in page_items:
+			q['taglist']=[]
+			q['topic']=topic.objects.get(id=q['topic_id_id']).title
+			q['subtopic']=subtopic.objects.get(id=q['subtopic_id_id']).title
+			p=paper.objects.get(id=q['paper_id_id'])
+			q['paper']=str(p.year) + ' ' + p.month + ' Paper ' + str(p.number)
+			q['display']=process_question(q)
+			keywordTags = ''
+			tags = request.GET.getlist("tag")
+			for t in tags:
+				tagdef = tag_definitions.objects.get(title=t)
+				if tagdef.type == "K":
+					keywordTags += tagdef.content + '|'
+			keywordTags = keywordTags[0:len(keywordTags)]
+			
+			for qitem in q['display']:
+				if qitem['type'] == 1:
+					for keyword in keywordTags.split('|'):
+						p = re.compile('^' + keyword + '$')
+						newstring=''
+						for word in qitem['value'].split():
+							if word[-1:] == ',':
+								word = word[0:len(word)-1]
+								if p.match(word) != None:
+									newstring += '<b>' + word + '</b>' + ', '
+								else:
+									newstring += word + ', '
+							else:
+								if p.match(word) != None:
+									newstring += '<b>' + word + '</b>' + ' '
+								else:
+									newstring += word + ' '
+						qitem['value']=newstring
+			q['displayans']=''
+			if len(answer.objects.filter(question_id=q['id'])) > 0:
+				ans=list(answer.objects.filter(question_id=q['id']).values())[0]
+				q['displayans']=process_solution(ans)
+			taglist = tag.objects.filter(question_id=q['id']).order_by('tag__title')
+			if len(taglist) != 0:
+				for t in taglist:
+					q['taglist'].append(t)
+	
+	param['questions']=page_items
+	param['page_links']=page_links
+	param['page_no']=int(page_no)
+	param['num_q']=no_of_qn
+	if type == "search":
+		param['global_total']=len(global_sel)
+	elif type == "image":
+		param['global_total']=len(global_image_sel)
+	param['topic_id']=topic_id
+	#fix tags into url get
+	urltag=''
+	for t in tags:
+		urltag += 'tag=' + t + '&'
+	urltag=urltag[0:len(urltag)-1]
+	param['urltags']=urltag
+	param['tags']=tags
+	param['type']=type
+			
+	return render_to_response('result.html',param)
+	
+	
+	
+	#Formula Distribution Section
+def analyzer_paper_formula_distribution(request, subj_id):
+	param = {}
+	
+	#query list of papers
+	param['papersets']=paperset.objects.filter(subject_id=subj_id).order_by('id')
+	param['topics']=topic.objects.filter(subject_id=subj_id).order_by('id')
+	
+	paperset_id = 0 #default
+	topic_id = 0 #default
+	if request.GET.get("paperset_id") != None: #compute only if paperset is chosen
+		#get distribution settings
+		topic_id = request.GET.get("topic_id")
+		paperset_id = request.GET.get("paperset_id")
+		
+		#retrieve the papers
+		paper_ids = paper.objects.filter(paperset_id=paperset_id).values('id')
+		
+		#retrieve the concepts
+		formula = tag_definitions.objects.filter(topic_id=topic_id, type="F")
+		
+		dataset=[] #for graph
+		formulaData=[] #for sidebar links
+		sidebarData=[] #for sidebar links
+		
+		#graph starts here
+		total_count = 0
+		for f in formula:
+			formula_count = 0
+			questions = question.objects.filter(paper_id__in=paper_ids)
+			for q in questions:
+				tag_result = tag.objects.filter(question_id=q.id, tag_id=f.id)
+				if len(tag_result) > 0: #question has concept
+					formula_count += 1
+				total_count += 1
+			if formula_count > 0:
+				dataset.append({'name': f.title,
+								'value': formula_count})
+			formulaData.append({'formula_id': f.id,
+								'formula_title': f.title,
+								'count': formula_count})
+		pset = paperset.objects.get(id=paperset_id)
+		sidebarData.append({'paperset_id': pset.id,
+							'paperset': pset.title,
+							'formula': formulaData})
+		param['dataset'] = dataset
+		param['totalcount'] = total_count
+		param['sidebarData'] = sidebarData
+	param['paperset_id'] = int(paperset_id)
+	param['topic_id'] = int(topic_id)
+	param['subj_id'] = subj_id	
+	param['subj_id_id']=subject.objects.get(id = subj_id)
+	
+	return render_to_response('analyzer_paper_formula_distribution.html', param, RequestContext(request))
+	
+	
+	#Formula Trend Section
+def analyzer_paper_formula_trend(request, subj_id):
+	param={}
+	
+	#query list of papers
+	param['papersets']=paperset.objects.filter(subject_id=subj_id).order_by('id')
+	param['topics']=topic.objects.filter(subject_id=subj_id).order_by('id')
+	
+	#defaults
+	start_paperset_id = -1 
+	end_paperset_id = -1
+	topic_id = -1
+	
+	#retrieve settings
+	if request.GET.get("start_paperset") != None:
+		start_paperset_id = request.GET.get("start_paperset")
+	if request.GET.get("end_paperset") != None:
+		end_paperset_id = request.GET.get("end_paperset")
+	if request.GET.get("topic_id") != None:
+		topic_id = request.GET.get("topic_id")
+	
+	#for sidebar data
+	sidebarData=[]
+	
+	graphData=[]
+	papersets = paperset.objects.filter(id__gte=start_paperset_id,id__lte=end_paperset_id)
+	formulas = tag_definitions.objects.filter(topic_id=topic_id, type="F")
+	
+	for pset in papersets:
+		valuelist=[]
+		paper_ids = paper.objects.filter(paperset_id=pset.id).values('id')
+		qnlist = question.objects.filter(paper_id__in=paper_ids).values('id')
+		formulaData=[]
+		for formula in formulas:
+			formula_count = len(tag.objects.filter(question_id_id__in=qnlist, tag_id=concept.id))
+			formulaData.append({'formula_id': formula.id,
+								'formula_title': formula.title,
+								'count': formula_count})
+			valuelist.append(formula_count)
+		graphData.append({'name': pset.title,
+						'value': valuelist})
+		sidebarData.append({'paperset_id': pset.id,
+							'paperset': pset.title,
+							'formula': formulaData})
+	
+	param['graphData'] = graphData
+	param['sidebarData'] = sidebarData
+	param['start_paperset_id'] = int(start_paperset_id)
+	param['end_paperset_id'] = int(end_paperset_id)
+	param['subj_id'] = subj_id
+	param['topic_id'] = int(topic_id)
+	param['formula']=formulas
+	param['subj_id_id']=subject.objects.get(id = subj_id)
+	
+	return render_to_response('analyzer_paper_formula_trend.html', param, RequestContext(request))
+	

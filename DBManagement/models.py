@@ -92,23 +92,32 @@ class image(models.Model):
 		return str(self.id)
 		
 #Classes for Clustering
-class keyword(models.Model):
+'''class keyword(models.Model):
 	id = models.IntegerField('id',primary_key=True,null=False)
 	key = models.TextField('key',null=True)
 	subject_id = models.ForeignKey(subject,null=False)
 	
 	def __str__(self):
-		return str(self.id)
+		return str(self.id)'''
 
 #Classes for Tags
-class tag(models.Model):
+class tag_definitions(models.Model):
 	id = models.AutoField('id',primary_key=True,null=False)
-	question_id = models.ForeignKey(question,null=False,related_name='tags')
-	tag = models.TextField('tag',null=True)
-	type = models.CharField('type',max_length=1)
+	title = models.TextField('title',null=True)
+	type = models.CharField('type', max_length=1)
+	topic = models.ForeignKey(topic, null=True)
+	content = models.TextField('content',null=True)
 	
 	def __str__(self):
-		return str(self.tag)
+		return str(self.id)
+
+class tag(models.Model):
+	id = models.AutoField('id',primary_key=True,null=False)
+	question_id = models.ForeignKey(question,null=False, related_name='tags')
+	tag = models.ForeignKey(tag_definitions,null=False)
+	
+	def __str__(self):
+		return str(self.id)
 	
 """ This line onwards doesnt concern data analysis, therefore commented out
 #identify using qid and question_part
