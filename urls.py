@@ -1,7 +1,7 @@
 from django.conf.urls.defaults import patterns, include, url
 
 import views
-from django.views.generic.simple import direct_to_template
+from django.views.generic import TemplateView
 
 # Uncomment the next two lines to enable the admin:
 from django.contrib import admin
@@ -12,19 +12,20 @@ dajaxice_autodiscover()
 from django.conf import settings
 
 
+
 urlpatterns = patterns('',
     # Examples:
-    # url(r'^$', 'ExamPapers.views.home', name='home'),
-    # url(r'^ExamPapers/', include('ExamPapers.foo.urls')),
+    # url(r'^$', 'views.home', name='home'),
+    # url(r'^$', include('foo.urls')),
 
     # Uncomment the admin/doc line below to enable admin documentation:
     # url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
 
     # Uncomment the next line to enable the admin:
     url(r'^admin/', include(admin.site.urls)),
-	(r'^favicon\.ico$', 'django.views.generic.simple.redirect_to', {'url': '/resource/static/image/favicon.ico'}),
-	(r'^$',direct_to_template,{'template':'index.html'}),
-	(r'^index/$',direct_to_template,{'template':'index.html'}),	
+	(r'^favicon\.ico$', 'django.views.generic.RedirectView', {'url': '/resource/static/image/favicon.ico'}),
+	(r'^$',TemplateView.as_view(template_name ="index.html")),
+	(r'^index/$',TemplateView.as_view(template_name ="index.html")),	
 	#(r'^topics/$',views.topics),
 	#(r'^questions/(?P<main_id>\d*)/(?P<sub_id>\d*)/$',views.questions),
 	#(r'^statistics/$',views.statistics),
@@ -37,7 +38,7 @@ urlpatterns = patterns('',
 	#(r'^test_sol_func/$',views.test_solution_checker),
 
 	#basic pages
-	(r'^menu/$',direct_to_template,{'template':'menu.html'}),	
+	(r'^menu/$',TemplateView.as_view(template_name ="menu.html")),	
 	(r'^mathsection/(?P<subj_id>\d*)/$',views.AMaths_Menu),
 	(r'^question/(?P<list_type>.*)/(?P<subj_id>\d*)/(?P<page_no>\d*)/$',views.add_math_question),
 	(r'^concept/(?P<subj_id>\d*)/$',views.add_math_concept),
@@ -83,8 +84,8 @@ urlpatterns = patterns('',
 	
 	
 	(r'^%s/' % settings.DAJAXICE_MEDIA_PREFIX, include('dajaxice.urls')),
-
 )
+
 
 # This is needed to serve static files like images and css
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns

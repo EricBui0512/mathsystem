@@ -2,7 +2,7 @@
 
 from django.shortcuts import render_to_response
 from django.template import RequestContext
-from ExamPapers.DBManagement.models import *
+from DBManagement.models import *
 from django.db.models import Count
 from collections import Counter
 from itertools import combinations, groupby
