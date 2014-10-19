@@ -12,8 +12,7 @@ ADMINS = (
 MANAGERS = ADMINS
 DAJAXICE_MEDIA_PREFIX="dajaxice"
 
-import dj_database_url
-DATABASES = {'default': dj_database_url.config()}
+
 
 
 #online database
@@ -181,6 +180,7 @@ LOGGING = {
     'handlers': {
         'mail_admins': {
             'level': 'ERROR',
+			'filters': [],
             'class': 'django.utils.log.AdminEmailHandler'
         }
     },
@@ -194,7 +194,15 @@ LOGGING = {
 }
 
 # # Allow all host hosts/domain names for this site
-#ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['*']
+
+# Parse database configuration from $DATABASE_URL
+import dj_database_url
+
+DATABASES = { 'default' : dj_database_url.config()}
+
+# Honor the 'X-Forwarded-Proto' header for request.is_secure()
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 #Storage on S3 settings are stored as os.environs to keep settings.py clean
 if not DEBUG:
