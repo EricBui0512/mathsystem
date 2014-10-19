@@ -12,7 +12,8 @@ ADMINS = (
 MANAGERS = ADMINS
 DAJAXICE_MEDIA_PREFIX="dajaxice"
 
-
+import dj_database_url
+DATABASES = {'default': dj_database_url.config()}
 
 
 #online database
