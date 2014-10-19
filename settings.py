@@ -12,12 +12,15 @@ ADMINS = (
 MANAGERS = ADMINS
 DAJAXICE_MEDIA_PREFIX="dajaxice"
 
+
+
+
 #online database
 if 'VCAP_SERVICES' in os.environ:
 	import json
 	vcap_services = json.loads(os.environ['VCAP_SERVICES'])
-	mysql_srv = vcap_services['mysql-5.1'][0]
-	cred = mysql_srv['credentials']
+	psql_srv = vcap_services['postgresql-9.3'][0]
+	cred = psql_srv['credentials']
 	
 	DATABASES = {
 		'default': {
@@ -161,7 +164,8 @@ INSTALLED_APPS = (
 	'DBManagement',
 	'resource',
 	'dajaxice',
-	
+	'storages',
+	'boto',
 )
 
 
@@ -187,6 +191,9 @@ LOGGING = {
         },
     }
 }
+
+# # Allow all host hosts/domain names for this site
+#ALLOWED_HOSTS = ['*']
 
 #Storage on S3 settings are stored as os.environs to keep settings.py clean
 if not DEBUG:
