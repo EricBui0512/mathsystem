@@ -16,12 +16,12 @@ DAJAXICE_MEDIA_PREFIX="dajaxice"
 if 'VCAP_SERVICES' in os.environ:
 	import json
 	vcap_services = json.loads(os.environ['VCAP_SERVICES'])
-	mysql_srv = vcap_services['mysql-5.1'][0]
-	cred = mysql_srv['credentials']
+	psql_srv = vcap_services['postgresql-9.3'][0]
+	cred = psql_srv['credentials']
 	
 	DATABASES = {
 		'default': {
-			'ENGINE': 'django.db.backends.mysql', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
+			'ENGINE': 'django.db.backends.postgresql_psycopg2', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
 			'NAME': cred['name'],                      # Or path to database file if using sqlite3.
 			'USER': cred['user'],                      # Not used with sqlite3.
 			'PASSWORD': cred['password'],                  # Not used with sqlite3.
@@ -32,12 +32,12 @@ if 'VCAP_SERVICES' in os.environ:
 else:
 	DATABASES = {
 		'default': {
-			'ENGINE': 'django.db.backends.mysql', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
-			'NAME': 'mathsystem',                      # Or path to database file if using sqlite3.
-			'USER': 'root',                      # Not used with sqlite3.
-			'PASSWORD': 'buivantuong1991',                  # Not used with sqlite3.
-			'HOST': '',                      # Set to empty string for localhost. Not used with sqlite3.
-			'PORT': '', 
+			'ENGINE': 'django.db.backends.postgresql_psycopg2', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
+			'NAME': "mathsystem",                      # Or path to database file if using sqlite3.
+			'USER': "postgres",                      # Not used with sqlite3.
+			'PASSWORD': '"buivantuong1991",                  # Not used with sqlite3.
+			'HOST': "localhost",                      # Set to empty string for localhost. Not used with sqlite3.
+			'PORT': "5432", 
 		}
 	}
 
