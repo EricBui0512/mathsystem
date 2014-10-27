@@ -211,7 +211,7 @@ LOGGING = {
 }
 
 # # Allow all host hosts/domain names for this site
-ALLOWED_HOSTS = ['mathsystem-ericbui.herokuapp.com']
+ALLOWED_HOSTS = ['*']
 
 
 
