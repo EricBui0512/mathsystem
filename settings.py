@@ -102,7 +102,7 @@ ADMIN_MEDIA_PREFIX = '/static/admin/'
 # https://docs.djangoproject.com/en/1.7/howto/static-files/
 
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+#BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 # Additional locations of static files
@@ -110,7 +110,7 @@ STATICFILES_DIRS = (
     # Put strings here, like "/home/html/static" or "C:/www/django/static".
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.
-	os.path.join(BASE_DIR, 'resource/static'),
+	#os.path.join(BASE_DIR, 'resource/static'),
 )
 
 # List of finder classes that know how to find static files in
@@ -125,7 +125,7 @@ STATICFILES_FINDERS = (
 # Simplified static file serving.
 # https://warehouse.python.org/project/whitenoise/
 
-STATICFILES_STORAGE = 'whitenoise.django.GzipManifestStaticFilesStorage'
+#STATICFILES_STORAGE = 'whitenoise.django.GzipManifestStaticFilesStorage'
 
 
 
