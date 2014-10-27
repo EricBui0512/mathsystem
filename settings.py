@@ -19,7 +19,7 @@ DAJAXICE_MEDIA_PREFIX="dajaxice"
 if 'VCAP_SERVICES' in os.environ:
 	import json
 	vcap_services = json.loads(os.environ['VCAP_SERVICES'])
-	psql_srv = vcap_services['postgresql-9.3'][0]
+	psql_srv = vcap_services['postgresql-9.2'][0]
 	cred = psql_srv['credentials']
 	
 	DATABASES = {
@@ -46,9 +46,7 @@ else:
 
 
 
-# Parse database configuration from $DATABASE_URL
-#import dj_database_url
-#DATABASES = { 'default' : dj_database_url.config()}
+
 
 	
 	
