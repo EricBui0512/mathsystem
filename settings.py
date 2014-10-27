@@ -1,8 +1,6 @@
-# Django settings for Mathsystem project.
+# Django settings for ExamPapers project.
 
 import os
-
-
 
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
@@ -14,17 +12,16 @@ ADMINS = (
 MANAGERS = ADMINS
 DAJAXICE_MEDIA_PREFIX="dajaxice"
 
-
 #online database
 if 'VCAP_SERVICES' in os.environ:
 	import json
 	vcap_services = json.loads(os.environ['VCAP_SERVICES'])
-	psql_srv = vcap_services['postgresql-9.2'][0]
-	cred = psql_srv['credentials']
+	mysql_srv = vcap_services['mysql-5.1'][0]
+	cred = mysql_srv['credentials']
 	
 	DATABASES = {
 		'default': {
-			'ENGINE': 'django.db.backends.postgresql_psycopg2', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
+			'ENGINE': 'django.db.backends.mysql', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
 			'NAME': cred['name'],                      # Or path to database file if using sqlite3.
 			'USER': cred['user'],                      # Not used with sqlite3.
 			'PASSWORD': cred['password'],                  # Not used with sqlite3.
@@ -35,22 +32,15 @@ if 'VCAP_SERVICES' in os.environ:
 else:
 	DATABASES = {
 		'default': {
-			'ENGINE': 'django.db.backends.postgresql_psycopg2', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
-			"NAME": "mathsystem",
-			"USER": "postgres",
-			"PASSWORD": "buivantuong1991",
-			"HOST": "localhost",
-			"PORT": "5432",
+			'ENGINE': 'django.db.backends.mysql', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
+			'NAME': 'd861e3396e6874a4dbc7bbe62fc81d6ec',                      # Or path to database file if using sqlite3.
+			'USER': 'eldricbui.ntu@gmail.com',                      # Not used with sqlite3.
+			'PASSWORD': 'buivantuong',                  # Not used with sqlite3.
+			'HOST': '10.0.7.119',                      # Set to empty string for localhost. Not used with sqlite3.
+			'PORT': '', 
 		}
 	}
 
-
-
-
-
-	
-	
-	
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
 # although not all choices may be available on all operating systems.
@@ -101,19 +91,11 @@ STATIC_URL = '/static/'
 # Examples: "http://foo.com/static/admin/", "/static/admin/".
 ADMIN_MEDIA_PREFIX = '/static/admin/'
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/1.7/howto/static-files/
-
-
-#BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-
 # Additional locations of static files
 STATICFILES_DIRS = (
     # Put strings here, like "/home/html/static" or "C:/www/django/static".
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.
-	#os.path.join(BASE_DIR, 'resource/static'),
 )
 
 # List of finder classes that know how to find static files in
@@ -123,15 +105,6 @@ STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
 #    'django.contrib.staticfiles.finders.DefaultStorageFinder',
 )
-
-
-# Simplified static file serving.
-# https://warehouse.python.org/project/whitenoise/
-
-#STATICFILES_STORAGE = 'whitenoise.django.GzipManifestStaticFilesStorage'
-
-
-
 
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = 'p!%rp5#5k1!_8c81v&9_n@o!0upj9=kji6b+iifplynu0^@=pk'
@@ -157,7 +130,7 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     'django.core.context_processors.media',
 )
 
-ROOT_URLCONF = 'urls'
+ROOT_URLCONF = 'ExamPapers.urls'
 
 # Python dotted path to the WSGI application used by Django's runserver.
 WSGI_APPLICATION = 'wsgi.application'
@@ -181,11 +154,9 @@ INSTALLED_APPS = (
     'django.contrib.admin',
     # Uncomment the next line to enable admin documentation:
     # 'django.contrib.admindocs',
-	'DBManagement',
-	'resource',
-	'dajaxice',
-	'storages',
-	'boto',
+	'ExamPapers.DBManagement',
+	'ExamPapers.resource',
+	'ExamPapers.dajaxice',
 )
 
 
@@ -200,7 +171,6 @@ LOGGING = {
     'handlers': {
         'mail_admins': {
             'level': 'ERROR',
-			'filters': [],
             'class': 'django.utils.log.AdminEmailHandler'
         }
     },
@@ -212,21 +182,4 @@ LOGGING = {
         },
     }
 }
-
-# # Allow all host hosts/domain names for this site
-ALLOWED_HOSTS = ['*']
-
-
-
-# Honor the 'X-Forwarded-Proto' header for request.is_secure()
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-
-#Storage on S3 settings are stored as os.environs to keep settings.py clean
-if not DEBUG:
-   AWS_STORAGE_BUCKET_NAME = os.environ['mathsystem']
-   AWS_ACCESS_KEY_ID = os.environ['AKIAIGOZ6EAD65JR7VOA']
-   AWS_SECRET_ACCESS_KEY = os.environ['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']
-   STATICFILES_STORAGE = 'storages.backends.s3boto.S3BotoStorage'
-   S3_URL = 'http://%s.s3.amazonaws.com/' % mathsystem
-   STATIC_URL = S3_URL
 

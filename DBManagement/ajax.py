@@ -1,6 +1,6 @@
 from django.utils import simplejson
 from dajaxice.core import dajaxice_functions
-from DBManagement.models import *
+from ExamPapers.DBManagement.models import *
 
 #for calling java at version 2
 import urllib2
