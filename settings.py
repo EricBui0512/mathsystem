@@ -13,6 +13,9 @@ MANAGERS = ADMINS
 DAJAXICE_MEDIA_PREFIX="dajaxice"
 
 
+# Parse database configuration from $DATABASE_URL
+import dj_database_url
+DATABASES = { 'default' : dj_database_url.config()}
 
 
 #online database
