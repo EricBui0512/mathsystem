@@ -17,4 +17,3 @@ psycopg2==2.5.4
 py-mysql2pgsql==0.1.5
 pycrypto==2.6.1
 static3==0.5.1
-whitenoise==1.0.3
