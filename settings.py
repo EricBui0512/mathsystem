@@ -33,10 +33,10 @@ else:
 	DATABASES = {
 		'default': {
 			'ENGINE': 'django.db.backends.mysql', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
-			'NAME': 'd861e3396e6874a4dbc7bbe62fc81d6ec',                      # Or path to database file if using sqlite3.
-			'USER': 'eldricbui.ntu@gmail.com',                      # Not used with sqlite3.
-			'PASSWORD': 'buivantuong',                  # Not used with sqlite3.
-			'HOST': '10.0.7.119',                      # Set to empty string for localhost. Not used with sqlite3.
+			'NAME': 'mathsystem',                      # Or path to database file if using sqlite3.
+			'USER': 'root',                      # Not used with sqlite3.
+			'PASSWORD': 'buivantuong1991',                  # Not used with sqlite3.
+			'HOST': '',                      # Set to empty string for localhost. Not used with sqlite3.
 			'PORT': '', 
 		}
 	}
@@ -130,7 +130,7 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     'django.core.context_processors.media',
 )
 
-ROOT_URLCONF = 'ExamPapers.urls'
+ROOT_URLCONF = 'urls'
 
 # Python dotted path to the WSGI application used by Django's runserver.
 WSGI_APPLICATION = 'wsgi.application'
@@ -154,9 +154,11 @@ INSTALLED_APPS = (
     'django.contrib.admin',
     # Uncomment the next line to enable admin documentation:
     # 'django.contrib.admindocs',
-	'ExamPapers.DBManagement',
-	'ExamPapers.resource',
-	'ExamPapers.dajaxice',
+	'DBManagement',
+	'resource',
+	'dajaxice',
+	'storages',
+	'boto',
 )
 
 
@@ -183,3 +185,13 @@ LOGGING = {
     }
 }
 
+
+
+#Storage on S3 settings are stored as os.environs to keep settings.py clean
+if not DEBUG:
+   AWS_STORAGE_BUCKET_NAME = os.environ['mathsystem']
+   AWS_ACCESS_KEY_ID = os.environ['AKIAIGOZ6EAD65JR7VOA']
+   AWS_SECRET_ACCESS_KEY = os.environ['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']
+   STATICFILES_STORAGE = 'storages.backends.s3boto.S3BotoStorage'
+   S3_URL = 'http://%s.s3.amazonaws.com/' % mathsystem
+   STATIC_URL = S3_URL

@@ -1,5 +1,5 @@
 from django import template
-from ExamPapers.DBManagement.models import *
+from DBManagement.models import *
 
 register = template.Library()
 
