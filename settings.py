@@ -200,7 +200,6 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 if not DEBUG:
    AWS_STORAGE_BUCKET_NAME = os.environ['mathsystem']
    AWS_ACCESS_KEY_ID = os.environ['AKIAIGOZ6EAD65JR7VOA']
-   AWS_SECRET_ACCESS_KEY = os.environ['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']
    STATICFILES_STORAGE = 'storages.backends.s3boto.S3BotoStorage'
    S3_URL = 'http://%s.s3.amazonaws.com/' % mathsystem
    STATIC_URL = S3_URL
